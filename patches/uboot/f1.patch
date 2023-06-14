@@ -1,0 +1,11 @@
+--- a/drivers/mmc/rockchip_dw_mmc.c	1970-01-01 08:00:01.000000000 +0800
++++ b/drivers/mmc/rockchip_dw_mmc.c	2023-06-14 01:33:09.737030250 +0800
+@@ -42,7 +42,7 @@
+ {
+ 	struct rockchip_dwmmc_priv *priv = dev_get_priv(dev);
+ 
+-	if (!priv || !&priv->clk)
++	if (!priv)
+ 		return 0;
+ 
+ 	if (!memcmp(dev->name, "dwmmc", strlen("dwmmc")))
