@@ -1,5 +1,39 @@
 {
   "nodes": {
+    "linux-rockchip": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1689731767,
+        "narHash": "sha256-gV667Tn9htW591aRs3iccmA5Z0T1g2OJWKvWnFJIjJU=",
+        "owner": "Joshua-Riek",
+        "repo": "linux-rockchip",
+        "rev": "ac03bb808a4b41eb30be1049c4e303a2870dd197",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Joshua-Riek",
+        "ref": "linux-5.10-gen-rkr4",
+        "repo": "linux-rockchip",
+        "type": "github"
+      }
+    },
+    "mesa-panfork": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1670633863,
+        "narHash": "sha256-4eZHMiYS+sRDHNBtLZTA8ELZnLns7yT3USU5YQswxQ0=",
+        "owner": "panfork",
+        "repo": "mesa",
+        "rev": "120202c675749c5ef81ae4c8cdc30019b4de08f4",
+        "type": "gitlab"
+      },
+      "original": {
+        "owner": "panfork",
+        "ref": "csf",
+        "repo": "mesa",
+        "type": "gitlab"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1686633565,
@@ -18,6 +52,8 @@
     },
     "root": {
       "inputs": {
+        "linux-rockchip": "linux-rockchip",
+        "mesa-panfork": "mesa-panfork",
         "nixpkgs": "nixpkgs"
       }
     }
