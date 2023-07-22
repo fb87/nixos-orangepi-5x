@@ -3,6 +3,10 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05-small";
+    home-manager = {
+      url = https://github.com/nix-community/home-manager/archive/release-23.05.tar.gz;
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     mesa-panfork = {
       url = "gitlab:panfork/mesa/csf";
@@ -86,6 +90,9 @@
           src = inputs.linux-rockchip;
         });
 
+        # most of required modules had been builtin
+        boot.supportedFilesystems = lib.mkForce [ "vfat" "ext4" "btrfs" ];
+
         boot.kernelParams = [ "console=ttyS2,1500000" "console=tty1" "loglevel=0" ];
         boot.initrd.includeDefaultModules = false;
 
@@ -139,10 +146,7 @@
           "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64-installer.nix"
           (buildConfig { inherit pkgs; lib = nixpkgs.lib; })
           ({ pkgs, lib, ... }: {
-            # most of required modules had been builtin
             boot.initrd.availableKernelModules = lib.mkForce [ ];
-            boot.supportedFilesystems = lib.mkForce [ "vfat" "ext4" "btrfs" ];
-
             networking.hostName = "nixos";
 
             users.users.nixos = {
@@ -173,23 +177,47 @@
         system = "aarch64-linux";
         modules = [
           (buildConfig { inherit pkgs; lib = nixpkgs.lib; })
-          ({ pkgs, lib, ... }: {
+          ({ pkgs, lib, ... }:
+	  {
             boot = {
               loader = {
                 grub.enable = false;
                 generic-extlinux-compatible.enable = true;
               };
+
+              initrd.luks.devices."encrypted".device = "/dev/disk/by-uuid/026b8fb9-a202-4967-a85d-121d29b5ba25";
+              initrd.availableKernelModules = lib.mkForce [ "dm_mod" "dm_crypt" "encrypted_keys" ];
             };
 
-            fileSystems."/boot" = {
-              device = "/dev/disk/by-path/platform-fe2e0000.mmc-part1";
-              fsType = "vfat";
-            };
+	    fileSystems."/" =
+	      { device = "none";
+	        fsType = "tmpfs";
+	        options = [ "mode=0755" ];
+	      };
 
-            fileSystems."/" = {
-              device = "/dev/disk/by-path/platform-fe2e0000.mmc-part2";
-              fsType = "ext4";
-            };
+	    fileSystems."/boot" =
+	      { device = "/dev/disk/by-uuid/CB13-FBB9";
+	        fsType = "vfat";
+	      };
+
+	    fileSystems."/nix" =
+	      { device = "/dev/disk/by-uuid/eb73432a-c583-4308-9bed-c93267398000";
+	        fsType = "btrfs";
+	        options = [ "subvol=nix,compress=zstd,noatime" ];
+	      };
+
+
+	    fileSystems."/etc" =
+	      { device = "/dev/disk/by-uuid/eb73432a-c583-4308-9bed-c93267398000";
+	        fsType = "btrfs";
+	        options = [ "subvol=etc,compress=zstd" ];
+	      };
+
+	    fileSystems."/var" =
+	      { device = "/dev/disk/by-uuid/eb73432a-c583-4308-9bed-c93267398000";
+	        fsType = "btrfs";
+	        options = [ "subvol=var,compress=zstd" ];
+	      };
 
             networking.hostName = "singoc";
             networking.networkmanager.enable = true;
@@ -207,6 +235,8 @@
               git
               htop
               neovim
+
+	      # rk3588s-uboot
             ];
 
             users.users.dao = {
@@ -242,9 +272,119 @@
                 max-free = ${toString (1024 * 1024 * 1024)}
               '';
             };
-
           })
         ];
+      };
+
+      homeConfigurations.dao = inputs.home-manager.lib.homeManagerConfiguration {
+	inherit pkgs;
+	modules = [
+	  ({ pkgs, ... }: {
+	     home.stateVersion = "23.05";
+	     home.username = "dao";
+	     home.homeDirectory = "/home/dao";
+
+	     home.packages = with pkgs; [
+	       file qemu unzip usbutils direnv neofetch
+	     ];
+
+	     home.file = {
+	       ".xinitrc".text = ''
+	         exec spectrwm
+	       '';
+
+	       ".config/spectrwm/spectrwm.conf".text = ''
+		 region_padding		= 5
+		 tile_gap		= 5
+
+	         program[term] 		= xst -f "Operator Mono Light - 14"
+	         program[lock] 		= true
+	         program[menu] 		= rofi -show drun
+	       '';
+
+               ".local/share/fonts/operator-mono-nerd".source = pkgs.fetchFromGitHub {
+                 owner = "TarunDaCoder";
+                 repo = "OperatorMono_NerdFont";
+                 rev = "d8e2ac4";
+                 sha256 = "sha256-jECkRLoBOYe6SUliAY4CeCFt9jT2GjS6bLA7c/N4uaY=";
+               };
+
+               ".config/user-dirs.dirs" = {
+                 text = ''
+                   XDG_DESKTOP_DIR="$HOME/pubs"
+                   XDG_DOWNLOAD_DIR="$HOME/data"
+                   XDG_TEMPLATES_DIR="$HOME/pubs"
+                   XDG_PUBLICSHARE_DIR="$HOME/pubs"
+                   XDG_VIDEOS_DIR="$HOME/meds"
+                   XDG_PICTURES_DIR="$HOME/meds"
+                   XDG_MUSIC_DIR="$HOME/meds"
+                   XDG_DOCUMENTS_DIR="$HOME/docs"
+                 '';
+	       };
+
+	       ".config/nvim/init.lua".source = pkgs.fetchurl {
+	         url = "https://raw.githubusercontent.com/fb87/init.nvim/master/init.lua";
+		 sha256 = "sha256-lXTVTULDVkbbwCNvkjqvkv23j2lt9r5AkuK7Uq5QtbE=";
+	       };
+	     };
+
+	     programs = {
+	       home-manager.enable = true;
+
+	       git = {
+	         enable = true;
+		 userName = "Si Dao";
+		 userEmail = "dao@singoc.com";
+                 extraConfig = {
+                   core = { whitespace = "trailing-space,space-before-tab"; };
+                 };
+	       };
+
+               rofi = {
+                 enable = true;
+
+                 font = "Operator Mono Light 18";
+                 terminal = "\${pkgs.xst}/bin/xst";
+
+                 theme = "Monokai";
+               };
+
+               bash = {
+                 enable = true;
+
+                 shellAliases = {
+                   gd = "git dot";
+
+                   ".." = "cd ..";
+
+                   hmw = "home-manager switch -b bak --flake $HOME/.nixos";
+                   hme = "$EDITOR $HOME/.nixos/modules/home.nix";
+                   nxe = "$EDITOR $HOME/.nixos/flake.nix";
+                   nxs = "sudo nixos-rebuild switch --flake $HOME/.nixos";
+                   ns = "nix search nixpkgs --no-write-lock-file";
+                 };
+
+                 bashrcExtra = ''
+                   # get rid of nano
+                   export EDITOR=nvim
+
+                   # wanna use local bin
+                   export PATH=$HOME/.local/bin:$PATH
+
+                   # use VI mode instead of Emacs
+                   set -o vi
+
+                   # increase speed of key repeating
+                   if [ ! -z "$DISPLAY" ]; then
+                     xset r rate 400 100
+                   fi
+
+                   eval "$(direnv hook bash)"
+                 '';
+               };
+	     };
+	  })
+	];
       };
 
       packages.aarch64-linux.default = nixosConfigurations.installer.config.system.build.sdImage;
