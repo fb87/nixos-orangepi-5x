@@ -1,97 +1,109 @@
 {
-  description = "NixOS Installer AArch64";
+  description = "NixOS on OPI5x";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05-small";
 
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05-small";
-  };
-
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs }: 
   let
-  pkgs = import nixpkgs { system = "aarch64-linux"; };
-  rk3588s-atf-blob = pkgs.stdenvNoCC.mkDerivation {
-    pname = "rk3588s-atf-blob";
-    version = "0.0.1";
-    
-    src = pkgs.fetchFromGitHub {
-      owner = "armbian";
+    system = "aarch64-linux";
+
+    pkgs = import nixpkgs { inherit system; };
+
+    rkbin = pkgs.fetchFromGitHub {
+      owner = "rockchip-linux";
       repo = "rkbin";
-      rev = "5d409529dbbc12959111787e77c349b3e832bc52";
-      sha256 = "sha256-cLBn7hBhVOKWz0bxJwRWyKJ+Au471kzQNoc8d8sVqlM=";
+      rev = "b4558da0860ca48bf1a571dd33ccba580b9abe23";
+      sha256 = "sha256-KUZQaQ+IZ0OynawlYGW99QGAOmOrGt2CZidI3NTxFw8=";
     };
-    
-    installPhase = ''
-      mkdir $out && cp rk35/*.* $out/
-    '';
-  };
 
-  rk3588s-uboot = pkgs.stdenv.mkDerivation {
-    pname = "rk3588s-uboot";
-    version = "2017.09-rk3588";
+    uboot = pkgs.stdenv.mkDerivation rec {
+      pname = "uboot";
+      version = "v2023.07.02";
 
-    src = pkgs.fetchFromGitHub {
-      owner = "orangepi-xunlong";
-      repo = "u-boot-orangepi";
-      rev = "v2017.09-rk3588";
-      sha256 = "sha256-J05zNWwZ26JhYWnUvj/VDYUKaXKEc4Im8KB9NwfBdVU=";
+      src = pkgs.fetchFromGitHub rec {
+        owner = "u-boot";
+	repo = "${owner}";
+	rev = "${version}";
+	sha256 = "sha256-HPBjm/rIkfTCyAKCFvCqoK7oNN9e9rV9l32qLmI/qz4=";
+      };
+
+      nativeBuildInputs = with pkgs; [
+        (python3.withPackages(ps: with ps; [ setuptools pyelftools ]))
+	which swig bison flex bc dtc openssl
+      ];
+
+      configurePhase = ''
+        patchShebangs tools scripts
+        make ARCH=arm rock5b-rk3588_defconfig
+      '';
+
+      buildPhase = ''
+        make ARCH=arm \
+	     ROCKCHIP_TPL=${rkbin}/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.12.bin \
+	     BL31=${rkbin}/bin/rk35/rk3588_bl31_v1.40.elf \
+	     -j$(nproc)
+      '';
+
+      installPhase = ''
+        cp u-boot-rockchip.bin $out
+      '';
     };
-    patches = [ ./patches/uboot/f1.patch ./patches/uboot/f2.patch ./patches/uboot/f3.patch ];
+  in
+  rec {
+    nixosConfigurations.opi5x = nixpkgs.lib.nixosSystem {
+      inherit system;
 
-    buildInputs = [ rk3588s-atf-blob pkgs.bc pkgs.dtc pkgs.python2 ];
-
-    configurePhase = ''
-      make ARCH=arm orangepi_5b_defconfig
-    '';
-
-    buildPhase = ''
-      patchShebangs arch/arm/mach-rockchip
-
-      make ARCH=arm BL31=${rk3588s-atf-blob}/rk3588_bl31_v1.32.elf \
-        spl/u-boot-spl.bin u-boot.dtb u-boot.itb
-      tools/mkimage -n rk3588 -T rksd -d \
-        ${rk3588s-atf-blob}/rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.08.bin:spl/u-boot-spl.bin \
-        idbloader.img
-    '';
-
-    installPhase = ''
-      mkdir $out
-      cp u-boot.itb idbloader.img $out
-    '';
-  };
- in rec
- {
-    nixosConfigurations.rk3588s = nixpkgs.lib.nixosSystem {
-      system = "aarch64-linux";
       modules = [
-        "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-        ( { pkgs, lib, ...}: {
-          boot.kernelPackages = pkgs.linuxPackages_6_3;
-          boot.kernelParams = [ "console=ttyS2,1500000" "console=tty1" ];
+	({pkgs, lib, ...}: {
+          imports = [
+            "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+          ];
+	  boot.kernelPackages = pkgs.linuxPackages_latest;
+	  boot.kernelParams = [ "console=ttyS2,1500000" "console=tty1" "boot.shell_on_fail" ];
           boot.supportedFilesystems = lib.mkForce [ "vfat" "ext4" "btrfs" ];
 
-          hardware = {
-            deviceTree = {
-              name = "rockchip/rk3588s-rock-5a.dtb";
-            };
-          };
-          
-          users.users.nixos = {
+	  hardware.deviceTree.name = "rockchip/rk3588s-rock-5a.dtb";
+	  hardware.deviceTree.overlays = [
+            {
+              # enable sdcard node
+              name = "enable-sdcard";
+              dtsText = ''
+                /dts-v1/;
+                /plugin/;
+                / {
+		    compatible = "rockchip,rk3588";
+
+		    fragment@0 {
+                      target = <&sdmmc>;
+
+                      __overlay__ {
+                        status = "okay";
+                      };
+                    };
+		};
+              '';
+            }
+	  ];
+
+          # allow firmwares to be packed
+	  nixpkgs.config.allowUnfree = true;
+	  hardware.enableAllFirmware = true;
+
+	  users.users.nixos = {
             initialPassword = "nixos";
             isNormalUser = true;
             description = "NixOS User";
             extraGroups = [ "users" "networkmanager" "wheel" ];
           };
 
-          # 32 MiB offset, should be enough for bootloader
-          sdImage.firmwarePartitionOffset = 32;
+	  sdImage.firmwarePartitionOffset = 16; # 16MiB for bootloader
           sdImage.compressImage = false;
-          sdImage.postBuildCommands = ''
-             dd if=\${rk3588s-uboot}/idbloader.img of=$img seek=64 conv=notrunc 
-             dd if=\${rk3588s-uboot}/u-boot.itb of=$img seek=16384 conv=notrunc 
-          '';
-        })
+          sdImage.postBuildCommands = "dd if=${uboot} of=$img seek=64 conv=notrunc";
+
+          system.stateVersion = "23.05";
+	})
       ];
     };
 
-    images.rk3588s = nixosConfigurations.rk3588s.config.system.build.sdImage;
+    images.opi5x = nixosConfigurations.opi5x.config.system.build.sdImage;
   };
 }
