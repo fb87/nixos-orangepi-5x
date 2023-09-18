@@ -1,6 +1,8 @@
 {
   description = "NixOS on OPI5x";
-  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05-small";
+
+  # pin the commit ID to avoid rebuild. nixos-23.04-small@Sept 18, 2023
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/4d2bff6897a5434eef9bd958c7e89c96dec569e0"; 
 
   outputs = { self, nixpkgs }: 
   let
