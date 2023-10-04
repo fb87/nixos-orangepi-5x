@@ -3,10 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05-small";
-    home-manager = {
-      url = https://github.com/nix-community/home-manager/archive/release-23.05.tar.gz;
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
 
     mesa-panfork = {
       url = "gitlab:panfork/mesa/csf";
@@ -33,6 +29,8 @@
           sha256 = "sha256-KUZQaQ+IZ0OynawlYGW99QGAOmOrGt2CZidI3NTxFw8=";
         };
 
+        # we just need TPL and BL31 but it doesn't hurt,
+        # follow single point of change to make life easier
         installPhase = ''
           mkdir $out && cp bin/rk35/rk3588* $out/
         '';
@@ -49,15 +47,27 @@
           sha256 = "sha256-HPBjm/rIkfTCyAKCFvCqoK7oNN9e9rV9l32qLmI/qz4=";
         };
 
-	patches = [ ./patches/u-boot/0001-sdmmc-enable.patch ];
+        # u-boot for evb is not enable the sdmmc node, which cause issue as
+        # b-boot cannot detect sdcard to boot from
+        # the order of boot also need to swap, the eMMC mapped to mm0 (not same as Linux kernel)
+        # will then tell u-boot to load images from eMMC first instead of sdcard
+        # FIXME: this is strage cuz the order seem correct in Linux kernel
+        patches = [ ./patches/u-boot/0001-sdmmc-enable.patch ];
 
         nativeBuildInputs = with pkgs; [
-	  (python3.withPackages(p: with p; [ 
-	    setuptools pyelftools
-	  ]))
+          (python3.withPackages (p: with p; [
+            setuptools
+            pyelftools
+          ]))
 
-	  swig ncurses gnumake bison flex openssl bc
-	] ++ [ rkbin ];
+          swig
+          ncurses
+          gnumake
+          bison
+          flex
+          openssl
+          bc
+        ] ++ [ rkbin ];
 
         configurePhase = ''
           make ARCH=arm evb-rk3588_defconfig
@@ -65,11 +75,13 @@
 
         buildPhase = ''
           patchShebangs tools scripts
-	  ROCKCHIP_TPL=${rkbin}/rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.12.bin BL31=${rkbin}/rk3588_bl31_v1.40.elf make -j8
+          make -j$(nproc) \
+            ROCKCHIP_TPL=${rkbin}/rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.12.bin \
+            BL31=${rkbin}/rk3588_bl31_v1.40.elf
         '';
 
         installPhase = ''
-	  mkdir $out
+          mkdir $out
           cp u-boot-rockchip.bin $out
         '';
       };
@@ -81,8 +93,7 @@
         src = ./.;
 
         installPhase = ''
-          mkdir $out
-          cp -Rf * $out/
+          tar czf $out *
         '';
       };
 
@@ -95,13 +106,15 @@
         # most of required modules had been builtin
         boot.supportedFilesystems = lib.mkForce [ "vfat" "ext4" "btrfs" ];
 
-        boot.kernelParams = [ "console=ttyS2,1500000" "console=tty1" "loglevel=0" ];
-        boot.initrd.includeDefaultModules = false;
+        boot.kernelParams = [
+          "console=ttyS2,1500000" # serial port for debugging
+          "console=tty1" # should be HDMI
+          "loglevel=4" # more verbose might help
+        ];
+        boot.initrd.includeDefaultModules = false; # no thanks, builtin modules should be enough
 
         hardware = {
-          deviceTree = {
-            name = "rockchip/rk3588s-orangepi-5b.dtb";
-          };
+          deviceTree = { name = "rockchip/rk3588s-orangepi-5b.dtb"; };
 
           opengl = {
             enable = true;
@@ -117,27 +130,38 @@
             ).drivers;
           };
 
-          enableRedistributableFirmware = true;
-          firmware = [
-            (pkgs.callPackage ./board/firmware { })
-          ];
+          firmware = [ (pkgs.callPackage ./board/firmware { }) ];
+
+          pulseaudio.enable = true;
         };
 
-        networking.networkmanager.enable = true;
-        networking.wireless.enable = false;
-
-        powerManagement.cpuFreqGovernor = "ondemand";
-
-        nixpkgs.config.allowUnfree = true;
+        networking = {
+          networkmanager.enable = true;
+          wireless.enable = false;
+        };
 
         environment.systemPackages = with pkgs; [
-          git htop neovim neofetch
+          git
+          htop
+          neovim
+          neofetch
 
-	  # only wayland can utily GPU as of now
-          wayland waybar swaylock swayidle foot wdisplays wofi
-
-	  chromium
+          # only wayland can utily GPU as of now
+          wayland
+          waybar
+          swaylock
+          swayidle
+          foot
+          wdisplays
+          wofi
         ];
+
+        environment.loginShellInit = ''
+          # https://wiki.archlinux.org/title/Sway
+          if [ -z "$WAYLAND_DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then
+            exec sway
+          fi
+        '';
 
         programs.sway = {
           enable = true;
@@ -145,39 +169,127 @@
         };
 
         services.openssh.enable = true;
+
         system.stateVersion = "23.05";
       };
     in
     rec
     {
       # to boot from SDCard
-      nixosConfigurations.installer = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.live = nixpkgs.lib.nixosSystem {
         system = "aarch64-linux";
         modules = [
           "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64-installer.nix"
           (buildConfig { inherit pkgs; lib = nixpkgs.lib; })
           ({ pkgs, lib, ... }: {
+            # all modules we need are builtin already, the nixos default profile might add
+            # some which is not available, force to not use any other.
             boot.initrd.availableKernelModules = lib.mkForce [ ];
-            networking.hostName = "nixos";
 
             users.users.nixos = {
               initialPassword = "nixos";
               isNormalUser = true;
               extraGroups = [ "networkmanager" "wheel" ];
-              home = "${nixos-orangepi-5x}";
 
-              # embedded the flake into the installer image cuz I don't want to download!
               packages = [
-                nixos-orangepi-5x u-boot
+                # all scripts bellow run as batch, no failure check
+
+                (pkgs.writeScriptBin "opi5b-update-firmware-2-emmc" ''
+                  set -x
+
+                  [ -f /boot/firmware/u-boot-rockchip.bin ] && \
+                    sudo dd if=/boot/firmware/u-boot-rockchip.bin of=/dev/mmcblk0 seek=64
+                '')
+
+                (pkgs.writeScriptBin "opi5b-unmount-emmc" ''
+                  set -x
+
+                  # unmount everything those leftover
+                  mount | awk '/mmcblk0|dev\/mapper|Firmwares|Encrypted|mnt/{print $1}' | xargs umount > /dev/null 2>&1
+                '')
+
+                (pkgs.writeScriptBin "opi5b-format-emmc" ''
+                  set -x
+
+                  # unmount everything those leftover
+                  opi5-unmount-emmc
+                  ${pkgs.cryptsetup}/bin/cryptsetup luksClose /dev/disk/by-partlabel/Encrypted > /dev/null 2>&1
+
+                  # create partition table
+                  ${pkgs.parted}/bin/parted -s /dev/mmcblk0 -- mktable gpt
+                  ${pkgs.parted}/bin/parted -s /dev/mmcblk0 -- mkpart Firmwares fat32 16MiB 512MiB
+                  ${pkgs.parted}/bin/parted -s /dev/mmcblk0 -- mkpart Encrypted btrfs 512MiB 100%
+                  ${pkgs.parted}/bin/parted -s /dev/mmcblk0 -- set 1 boot on
+                  ${pkgs.parted}/bin/parted -s /dev/mmcblk0 -- print
+
+                  # format the boot partition in advanced
+                  mkfs.vfat -F32 /dev/mmcblk0p1
+
+                  # expect crypt device not yet openned or mounted
+                  ${pkgs.cryptsetup}/bin/cryptsetup luksFormat /dev/disk/by-partlabel/Encrypted
+                  ${pkgs.cryptsetup}/bin/cryptsetup luksOpen /dev/disk/by-partlabel/Encrypted Encrypted
+
+                  # format partition and create subvolumes
+                  mkfs.btrfs /dev/mapper/Encrypted
+                  mkdir -p /mnt && mount /dev/mapper/Encrypted /mnt
+                  btrfs subvolume create /mnt/nix
+                  btrfs subvolume create /mnt/usr
+                  umount /mnt
+                '')
+
+                (pkgs.writeScriptBin "opi5b-mount-root" ''
+                  set -x
+
+                  # nerds might repeatly run over and over
+                  opi5-unmount-emmc
+
+                  # where is the root?
+                  mkdir -p /mnt
+                  mount -t tmpfs -o size=8G,mode=755 none /mnt
+
+                  # create the archors
+                  mkdir -p /mnt/{boot,nix}
+                  mount -t btrfs -o subvol=nix,compress=zstd,noatime /mnt/nix
+                  mount /dev/disk/by-partlabel/Firmwares /mnt/boot
+
+                  # final check before hangout
+                  mount
+                '')
+
+                (pkgs.writeScriptBin "opi5b-install-2-emmc" ''
+                  set -x
+
+                  tmp=$(mktemp -d)
+
+                  # we are trying to customize the flake, let not try copy
+                  [ -f $PWD/flake.nix ] && tmp=$PWD
+                  [ -f $tmp/flake.nix ] || tar xf firmware/nixos-orangepi-5x.tar.gz -C $tmp
+
+                  [ -f $tmp/flake.nix ] && nix build $tmp/flake.nix#singoc
+                '')
+
               ];
             };
 
-	    # rockchip bootloader needs 16MiB+
-            sdImage.firmwarePartitionOffset = 32;
-            sdImage.compressImage = true;
-            sdImage.postBuildCommands = ''
-              dd if=\${u-boot}/u-boot-rockchip.bin of=$img seek=64 conv=notrunc 
-            '';
+            # rockchip bootloader needs 16MiB+
+            sdImage = {
+              # 16MiB should be enough (u-boot-rockchip.bin ~ 10MiB)
+              firmwarePartitionOffset = 16;
+              firmwarePartitionName = "Firmwares";
+
+              compressImage = true;
+              expandOnBoot = true;
+
+              # u-boot-rockchip.bin is all-in-one bootloader blob, flashing to the image should be enough
+              populateFirmwareCommands = "dd if=${u-boot}/u-boot-rockchip.bin of=$img seek=64 conv=notrunc";
+
+              # make sure u-boot available on the firmware partition, cuz we do need this
+              # to write to eMMC
+              postBuildCommands = ''
+                cp ${u-boot}/u-boot-rockchip.bin firmware/
+                cp ${nixos-orangepi-5x} firmware/nixos-orangepi-5x.tar.gz
+              '';
+            };
           })
         ];
       };
@@ -203,7 +315,15 @@
                 {
                   device = "none";
                   fsType = "tmpfs";
-                  options = [ "mode=0755" ];
+                  options = [ "mode=0755,size=8G" ];
+                };
+
+              # why not, we have 16GiB RAM
+              fileSystems."/tmp" =
+                {
+                  device = "none";
+                  fsType = "tmpfs";
+                  options = [ "mode=0755,size=12G" ];
                 };
 
               fileSystems."/boot" =
@@ -226,8 +346,10 @@
                   options = [ "subvol=usr,compress=zstd,noatime" ];
                 };
 
-              networking.hostName = "singoc";
-              networking.networkmanager.enable = true;
+              networking = {
+                hostName = "singoc";
+                networkmanager.enable = true;
+              };
 
               time.timeZone = "Asia/Ho_Chi_Minh";
               i18n.defaultLocale = "en_US.UTF-8";
@@ -235,32 +357,25 @@
               users.users.dao = {
                 isNormalUser = true;
                 initialPassword = "dao";
-                extraGroups = [ "wheel" "networkmanager" ];
+                extraGroups = [ "wheel" "networkmanager" "tty" "video" ];
                 packages = with pkgs; [
-                  glances
-                  librewolf
                   neofetch
                   pavucontrol
-                  lxappearance
                 ];
               };
-
-              programs.sway.enable = true;
-
-              virtualisation.podman.enable = true;
-
-              hardware.pulseaudio.enable = true;
 
               nix = {
                 settings = {
                   auto-optimise-store = true;
                   experimental-features = [ "nix-command" "flakes" ];
                 };
+
                 gc = {
                   automatic = true;
                   dates = "weekly";
                   options = "--delete-older-than 30d";
                 };
+
                 # Free up to 1GiB whenever there is less than 100MiB left.
                 extraOptions = ''
                   min-free = ${toString (100 * 1024 * 1024)}
@@ -271,120 +386,15 @@
         ];
       };
 
-      homeConfigurations.dao = inputs.home-manager.lib.homeManagerConfiguration {
-        inherit pkgs;
-        modules = [
-          ({ pkgs, ... }: {
-            home.stateVersion = "23.05";
-            home.username = "dao";
-            home.homeDirectory = "/home/dao";
+      formatter.aarch64-linux = pkgs.nixpkgs-fmt;
 
-            home.packages = with pkgs; [
-              file
-              qemu
-              unzip
-              usbutils
-              direnv
-              neofetch
-              chromium
-            ];
-
-            home.file = {
-              ".local/bin/firefox".source = pkgs.writeScript "firefox" ''
-                	         MOZ_ENABLE_WAYLAND=1 librewolf
-                	       '';
-
-              ".local/bin/chrome".source = pkgs.writeScript "chrome" ''
-                	         ${pkgs.chromium}/bin/chromium-browser --ignore-gpu-blocklist --enable-zero-copy --ozone-platform=wayland
-                	       '';
-
-              ".local/share/fonts/operator-mono-nerd".source = pkgs.fetchFromGitHub {
-                owner = "TarunDaCoder";
-                repo = "OperatorMono_NerdFont";
-                rev = "d8e2ac4";
-                sha256 = "sha256-jECkRLoBOYe6SUliAY4CeCFt9jT2GjS6bLA7c/N4uaY=";
-              };
-
-              ".config/user-dirs.dirs" = {
-                text = ''
-                  XDG_DESKTOP_DIR="$HOME/pubs"
-                  XDG_DOWNLOAD_DIR="$HOME/data"
-                  XDG_TEMPLATES_DIR="$HOME/pubs"
-                  XDG_PUBLICSHARE_DIR="$HOME/pubs"
-                  XDG_VIDEOS_DIR="$HOME/meds"
-                  XDG_PICTURES_DIR="$HOME/meds"
-                  XDG_MUSIC_DIR="$HOME/meds"
-                  XDG_DOCUMENTS_DIR="$HOME/docs"
-                '';
-              };
-
-              ".config/nvim/init.lua".source = pkgs.fetchurl {
-                url = "https://raw.githubusercontent.com/fb87/init.nvim/master/init.lua";
-                sha256 = "sha256-ZnxDhufkpnH1y9ZoxgXaMykDGkYjwWHDlRr6hwcxuxQ=";
-              };
-
-	      ".local/share/fonts/typewroter".source = pkgs.fetchzip {
-	        url = "https://dl.dafont.com/dl/?f=typewriter_condensed";
-		name = "typewriter.zip";
-		extension = "zip";
-		stripRoot = false;
-		sha256 = "sha256-O7BeFWvAt5EzAXw9MxigvTKFaba75uNDsEP0Asoq28E=";
-	      };
-            };
-
-            programs = {
-              home-manager.enable = true;
-
-              git = {
-                enable = true;
-                userName = "Si Dao";
-                userEmail = "dao@singoc.com";
-                extraConfig = {
-                  core = { whitespace = "trailing-space,space-before-tab"; };
-                };
-              };
-
-              starship = {
-                enable = true;
-              };
-
-              bash = {
-                enable = true;
-
-                shellAliases = {
-                  gd = "git dot";
-
-                  ".." = "cd ..";
-
-                  hmw = "home-manager switch -b bak --flake $HOME/.nixos";
-                  hme = "$EDITOR $HOME/.nixos/modules/home.nix";
-                  nxe = "$EDITOR $HOME/.nixos/flake.nix";
-                  nxs = "sudo nixos-rebuild switch --flake $HOME/.nixos";
-                  ns = "nix search nixpkgs --no-write-lock-file";
-                };
-
-                bashrcExtra = ''
-                                     # get rid of nano
-                                     export EDITOR=nvim
-
-                                     # wanna use local bin
-                                     export PATH=$HOME/.local/bin:$PATH
-
-                                     # use VI mode instead of Emacs
-                                     set -o vi
-
-                  		   if [ -z "$WAYLAND_DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then
-                                       exec sway
-                                     fi
-
-                                     eval "$(direnv hook bash)"
-                '';
-              };
-            };
-          })
-        ];
-      };
-
-      packages.aarch64-linux.default = nixosConfigurations.installer.config.system.build.sdImage;
+      packages.aarch64-linux.default = nixosConfigurations.live.config.system.build.sdImage;
+      packages.aarch64-linux.sdwriter = pkgs.writeScript "flash" ''
+        echo "= flash to sdcard (/dev/mmcblk1) if presented, requires sudo as well."
+        [ -e /dev/mmcblk1 ] && zstdcat result/sd-image/*.zst | \
+              sudo dd of=/dev/mmcblk1 bs=8M status=progress
+	[ -e /dev/mmcblk1 ] || echo "=  no sdcard found"
+      '';
+      apps.aarch64-linux.default = { type = "app"; program = "${packages.aarch64-linux.sdwriter}"; };
     };
 }

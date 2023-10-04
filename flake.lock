@@ -1,21 +1,5 @@
 {
   "nodes": {
-    "home-manager": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "narHash": "sha256-gSg7UTVtls2yO9lKtP0yb66XBHT1Fx5qZSZbGMpSn2c=",
-        "type": "tarball",
-        "url": "https://github.com/nix-community/home-manager/archive/release-23.05.tar.gz"
-      },
-      "original": {
-        "type": "tarball",
-        "url": "https://github.com/nix-community/home-manager/archive/release-23.05.tar.gz"
-      }
-    },
     "linux-rockchip": {
       "flake": false,
       "locked": {
@@ -68,7 +52,6 @@
     },
     "root": {
       "inputs": {
-        "home-manager": "home-manager",
         "linux-rockchip": "linux-rockchip",
         "mesa-panfork": "mesa-panfork",
         "nixpkgs": "nixpkgs"
