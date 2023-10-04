@@ -1,18 +1,34 @@
 {
   "nodes": {
+    "home-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "narHash": "sha256-gSg7UTVtls2yO9lKtP0yb66XBHT1Fx5qZSZbGMpSn2c=",
+        "type": "tarball",
+        "url": "https://github.com/nix-community/home-manager/archive/release-23.05.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/nix-community/home-manager/archive/release-23.05.tar.gz"
+      }
+    },
     "linux-rockchip": {
       "flake": false,
       "locked": {
-        "lastModified": 1689731767,
-        "narHash": "sha256-gV667Tn9htW591aRs3iccmA5Z0T1g2OJWKvWnFJIjJU=",
-        "owner": "Joshua-Riek",
+        "lastModified": 1695823120,
+        "narHash": "sha256-YCCyPHBkL48mJGU/WhnMEzptiZc2EujjuDXOMz4lZ8I=",
+        "owner": "armbian",
         "repo": "linux-rockchip",
-        "rev": "ac03bb808a4b41eb30be1049c4e303a2870dd197",
+        "rev": "f27702096f0c9b2b4aa423e492db6369fc0fe979",
         "type": "github"
       },
       "original": {
-        "owner": "Joshua-Riek",
-        "ref": "linux-5.10-gen-rkr4",
+        "owner": "armbian",
+        "ref": "rk-5.10-rkr5.1",
         "repo": "linux-rockchip",
         "type": "github"
       }
@@ -52,6 +68,7 @@
     },
     "root": {
       "inputs": {
+        "home-manager": "home-manager",
         "linux-rockchip": "linux-rockchip",
         "mesa-panfork": "mesa-panfork",
         "nixpkgs": "nixpkgs"

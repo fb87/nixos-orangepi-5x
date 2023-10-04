@@ -14,7 +14,7 @@
     };
 
     linux-rockchip = {
-      url = "github:Joshua-Riek/linux-rockchip/linux-5.10-gen-rkr4";
+      url = "github:armbian/linux-rockchip/rk-5.10-rkr5.1";
       flake = false;
     };
   };
@@ -22,59 +22,61 @@
   outputs = inputs@{ nixpkgs, ... }:
     let
       pkgs = import nixpkgs { system = "aarch64-linux"; };
-      rk3588s-atf-blob = pkgs.stdenvNoCC.mkDerivation {
-        pname = "rk3588s-atf-blob";
-        version = "0.0.1";
+      rkbin = pkgs.stdenvNoCC.mkDerivation {
+        pname = "rkbin";
+        version = "unstable-b4558da";
 
         src = pkgs.fetchFromGitHub {
-          owner = "armbian";
+          owner = "rockchip-linux";
           repo = "rkbin";
-          rev = "5d409529dbbc12959111787e77c349b3e832bc52";
-          sha256 = "sha256-cLBn7hBhVOKWz0bxJwRWyKJ+Au471kzQNoc8d8sVqlM=";
+          rev = "b4558da0860ca48bf1a571dd33ccba580b9abe23";
+          sha256 = "sha256-KUZQaQ+IZ0OynawlYGW99QGAOmOrGt2CZidI3NTxFw8=";
         };
 
         installPhase = ''
-          mkdir $out && cp rk35/*.* $out/
+          mkdir $out && cp bin/rk35/rk3588* $out/
         '';
       };
 
-      rk3588s-uboot = pkgs.stdenv.mkDerivation {
-        pname = "rk3588s-uboot";
-        version = "2017.09-rk3588";
+      u-boot = pkgs.stdenv.mkDerivation rec {
+        pname = "u-boot";
+        version = "v2023.07.02";
 
         src = pkgs.fetchFromGitHub {
-          owner = "orangepi-xunlong";
-          repo = "u-boot-orangepi";
-          rev = "v2017.09-rk3588";
-          sha256 = "sha256-L4cnmyzjFu4WRE0JTzQh2kNxD5CKxbYj5NgFT2EUynI=";
+          owner = "u-boot";
+          repo = "u-boot";
+          rev = "${version}";
+          sha256 = "sha256-HPBjm/rIkfTCyAKCFvCqoK7oNN9e9rV9l32qLmI/qz4=";
         };
-        patches = [ ./patches/uboot/f1.patch ./patches/uboot/f2.patch ./patches/uboot/f3.patch ];
 
-        buildInputs = [ rk3588s-atf-blob pkgs.bc pkgs.dtc pkgs.python2 ];
+	patches = [ ./patches/u-boot/0001-sdmmc-enable.patch ];
+
+        nativeBuildInputs = with pkgs; [
+	  (python3.withPackages(p: with p; [ 
+	    setuptools pyelftools
+	  ]))
+
+	  swig ncurses gnumake bison flex openssl bc
+	] ++ [ rkbin ];
 
         configurePhase = ''
-          make ARCH=arm orangepi_5b_defconfig
+          make ARCH=arm evb-rk3588_defconfig
         '';
 
         buildPhase = ''
-          patchShebangs arch/arm/mach-rockchip
-
-          make ARCH=arm BL31=${rk3588s-atf-blob}/rk3588_bl31_v1.32.elf \
-            spl/u-boot-spl.bin u-boot.dtb u-boot.itb
-          tools/mkimage -n rk3588 -T rksd -d \
-            ${rk3588s-atf-blob}/rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.08.bin:spl/u-boot-spl.bin \
-            idbloader.img
+          patchShebangs tools scripts
+	  ROCKCHIP_TPL=${rkbin}/rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.12.bin BL31=${rkbin}/rk3588_bl31_v1.40.elf make -j8
         '';
 
         installPhase = ''
-          mkdir $out
-          cp u-boot.itb idbloader.img $out
+	  mkdir $out
+          cp u-boot-rockchip.bin $out
         '';
       };
 
       nixos-orangepi-5x = pkgs.stdenvNoCC.mkDerivation {
         pname = "nixos-orangepi-5x";
-        version = "0.1.0";
+        version = "unstable";
 
         src = ./.;
 
@@ -114,6 +116,7 @@
               })
             ).drivers;
           };
+
           enableRedistributableFirmware = true;
           firmware = [
             (pkgs.callPackage ./board/firmware { })
@@ -128,10 +131,18 @@
         nixpkgs.config.allowUnfree = true;
 
         environment.systemPackages = with pkgs; [
-          git
-          htop
-          neovim
+          git htop neovim neofetch
+
+	  # only wayland can utily GPU as of now
+          wayland waybar swaylock swayidle foot wdisplays wofi
+
+	  chromium
         ];
+
+        programs.sway = {
+          enable = true;
+          wrapperFeatures.gtk = true;
+        };
 
         services.openssh.enable = true;
         system.stateVersion = "23.05";
@@ -157,16 +168,15 @@
 
               # embedded the flake into the installer image cuz I don't want to download!
               packages = [
-                nixos-orangepi-5x
-                rk3588s-uboot
+                nixos-orangepi-5x u-boot
               ];
             };
 
+	    # rockchip bootloader needs 16MiB+
             sdImage.firmwarePartitionOffset = 32;
             sdImage.compressImage = true;
             sdImage.postBuildCommands = ''
-              dd if=\${rk3588s-uboot}/idbloader.img of=$img seek=64 conv=notrunc 
-              dd if=\${rk3588s-uboot}/u-boot.itb of=$img seek=16384 conv=notrunc 
+              dd if=\${u-boot}/u-boot-rockchip.bin of=$img seek=64 conv=notrunc 
             '';
           })
         ];
@@ -178,213 +188,201 @@
         modules = [
           (buildConfig { inherit pkgs; lib = nixpkgs.lib; })
           ({ pkgs, lib, ... }:
-	  {
-            boot = {
-              loader = {
-                grub.enable = false;
-                generic-extlinux-compatible.enable = true;
+            {
+              boot = {
+                loader = {
+                  grub.enable = false;
+                  generic-extlinux-compatible.enable = true;
+                };
+
+                initrd.luks.devices."Encrypted".device = "/dev/disk/by-partlabel/Encrypted";
+                initrd.availableKernelModules = lib.mkForce [ "dm_mod" "dm_crypt" "encrypted_keys" ];
               };
 
-              initrd.luks.devices."encrypted".device = "/dev/disk/by-uuid/026b8fb9-a202-4967-a85d-121d29b5ba25";
-              initrd.availableKernelModules = lib.mkForce [ "dm_mod" "dm_crypt" "encrypted_keys" ];
-            };
+              fileSystems."/" =
+                {
+                  device = "none";
+                  fsType = "tmpfs";
+                  options = [ "mode=0755" ];
+                };
 
-	    fileSystems."/" =
-	      { device = "none";
-	        fsType = "tmpfs";
-	        options = [ "mode=0755" ];
-	      };
+              fileSystems."/boot" =
+                {
+                  device = "/dev/disk/by-partlabel/Firmwares";
+                  fsType = "vfat";
+                };
 
-	    fileSystems."/boot" =
-	      { device = "/dev/disk/by-uuid/CB13-FBB9";
-	        fsType = "vfat";
-	      };
+              fileSystems."/nix" =
+                {
+                  device = "/dev/mapper/Encrypted";
+                  fsType = "btrfs";
+                  options = [ "subvol=nix,compress=zstd,noatime" ];
+                };
 
-	    fileSystems."/nix" =
-	      { device = "/dev/disk/by-uuid/eb73432a-c583-4308-9bed-c93267398000";
-	        fsType = "btrfs";
-	        options = [ "subvol=nix,compress=zstd,noatime" ];
-	      };
+              fileSystems."/home/dao" =
+                {
+                  device = "/dev/mapper/Encrypted";
+                  fsType = "btrfs";
+                  options = [ "subvol=usr,compress=zstd,noatime" ];
+                };
 
+              networking.hostName = "singoc";
+              networking.networkmanager.enable = true;
 
-	    fileSystems."/etc" =
-	      { device = "/dev/disk/by-uuid/eb73432a-c583-4308-9bed-c93267398000";
-	        fsType = "btrfs";
-	        options = [ "subvol=etc,compress=zstd" ];
-	      };
+              time.timeZone = "Asia/Ho_Chi_Minh";
+              i18n.defaultLocale = "en_US.UTF-8";
 
-	    fileSystems."/var" =
-	      { device = "/dev/disk/by-uuid/eb73432a-c583-4308-9bed-c93267398000";
-	        fsType = "btrfs";
-	        options = [ "subvol=var,compress=zstd" ];
-	      };
-
-            networking.hostName = "singoc";
-            networking.networkmanager.enable = true;
-
-            time.timeZone = "Asia/Ho_Chi_Minh";
-            i18n.defaultLocale = "en_US.UTF-8";
-
-            services.xserver = {
-              enable = true;
-              displayManager.startx.enable = true;
-              windowManager.spectrwm.enable = true;
-            };
-
-            environment.systemPackages = with pkgs; [
-              git
-              htop
-              neovim
-
-	      # rk3588s-uboot
-            ];
-
-            users.users.dao = {
-              isNormalUser = true;
-              initialPassword = "dao";
-              extraGroups = [ "wheel" "networkmanager" ];
-              packages = with pkgs; [
-                xst
-                rofi
-                glances
-                librewolf
-                neofetch
-                pavucontrol
-                lxappearance
-              ];
-            };
-
-            virtualisation.podman.enable = true;
-
-            nix = {
-              settings = {
-                auto-optimise-store = true;
-                experimental-features = [ "nix-command" "flakes" ];
+              users.users.dao = {
+                isNormalUser = true;
+                initialPassword = "dao";
+                extraGroups = [ "wheel" "networkmanager" ];
+                packages = with pkgs; [
+                  glances
+                  librewolf
+                  neofetch
+                  pavucontrol
+                  lxappearance
+                ];
               };
-              gc = {
-                automatic = true;
-                dates = "weekly";
-                options = "--delete-older-than 30d";
+
+              programs.sway.enable = true;
+
+              virtualisation.podman.enable = true;
+
+              hardware.pulseaudio.enable = true;
+
+              nix = {
+                settings = {
+                  auto-optimise-store = true;
+                  experimental-features = [ "nix-command" "flakes" ];
+                };
+                gc = {
+                  automatic = true;
+                  dates = "weekly";
+                  options = "--delete-older-than 30d";
+                };
+                # Free up to 1GiB whenever there is less than 100MiB left.
+                extraOptions = ''
+                  min-free = ${toString (100 * 1024 * 1024)}
+                  max-free = ${toString (1024 * 1024 * 1024)}
+                '';
               };
-              # Free up to 1GiB whenever there is less than 100MiB left.
-              extraOptions = ''
-                min-free = ${toString (100 * 1024 * 1024)}
-                max-free = ${toString (1024 * 1024 * 1024)}
-              '';
-            };
-          })
+            })
         ];
       };
 
       homeConfigurations.dao = inputs.home-manager.lib.homeManagerConfiguration {
-	inherit pkgs;
-	modules = [
-	  ({ pkgs, ... }: {
-	     home.stateVersion = "23.05";
-	     home.username = "dao";
-	     home.homeDirectory = "/home/dao";
+        inherit pkgs;
+        modules = [
+          ({ pkgs, ... }: {
+            home.stateVersion = "23.05";
+            home.username = "dao";
+            home.homeDirectory = "/home/dao";
 
-	     home.packages = with pkgs; [
-	       file qemu unzip usbutils direnv neofetch
-	     ];
+            home.packages = with pkgs; [
+              file
+              qemu
+              unzip
+              usbutils
+              direnv
+              neofetch
+              chromium
+            ];
 
-	     home.file = {
-	       ".xinitrc".text = ''
-	         exec spectrwm
-	       '';
+            home.file = {
+              ".local/bin/firefox".source = pkgs.writeScript "firefox" ''
+                	         MOZ_ENABLE_WAYLAND=1 librewolf
+                	       '';
 
-	       ".config/spectrwm/spectrwm.conf".text = ''
-		 region_padding		= 5
-		 tile_gap		= 5
+              ".local/bin/chrome".source = pkgs.writeScript "chrome" ''
+                	         ${pkgs.chromium}/bin/chromium-browser --ignore-gpu-blocklist --enable-zero-copy --ozone-platform=wayland
+                	       '';
 
-	         program[term] 		= xst -f "Operator Mono Light - 14"
-	         program[lock] 		= true
-	         program[menu] 		= rofi -show drun
-	       '';
+              ".local/share/fonts/operator-mono-nerd".source = pkgs.fetchFromGitHub {
+                owner = "TarunDaCoder";
+                repo = "OperatorMono_NerdFont";
+                rev = "d8e2ac4";
+                sha256 = "sha256-jECkRLoBOYe6SUliAY4CeCFt9jT2GjS6bLA7c/N4uaY=";
+              };
 
-               ".local/share/fonts/operator-mono-nerd".source = pkgs.fetchFromGitHub {
-                 owner = "TarunDaCoder";
-                 repo = "OperatorMono_NerdFont";
-                 rev = "d8e2ac4";
-                 sha256 = "sha256-jECkRLoBOYe6SUliAY4CeCFt9jT2GjS6bLA7c/N4uaY=";
-               };
+              ".config/user-dirs.dirs" = {
+                text = ''
+                  XDG_DESKTOP_DIR="$HOME/pubs"
+                  XDG_DOWNLOAD_DIR="$HOME/data"
+                  XDG_TEMPLATES_DIR="$HOME/pubs"
+                  XDG_PUBLICSHARE_DIR="$HOME/pubs"
+                  XDG_VIDEOS_DIR="$HOME/meds"
+                  XDG_PICTURES_DIR="$HOME/meds"
+                  XDG_MUSIC_DIR="$HOME/meds"
+                  XDG_DOCUMENTS_DIR="$HOME/docs"
+                '';
+              };
 
-               ".config/user-dirs.dirs" = {
-                 text = ''
-                   XDG_DESKTOP_DIR="$HOME/pubs"
-                   XDG_DOWNLOAD_DIR="$HOME/data"
-                   XDG_TEMPLATES_DIR="$HOME/pubs"
-                   XDG_PUBLICSHARE_DIR="$HOME/pubs"
-                   XDG_VIDEOS_DIR="$HOME/meds"
-                   XDG_PICTURES_DIR="$HOME/meds"
-                   XDG_MUSIC_DIR="$HOME/meds"
-                   XDG_DOCUMENTS_DIR="$HOME/docs"
-                 '';
-	       };
+              ".config/nvim/init.lua".source = pkgs.fetchurl {
+                url = "https://raw.githubusercontent.com/fb87/init.nvim/master/init.lua";
+                sha256 = "sha256-ZnxDhufkpnH1y9ZoxgXaMykDGkYjwWHDlRr6hwcxuxQ=";
+              };
 
-	       ".config/nvim/init.lua".source = pkgs.fetchurl {
-	         url = "https://raw.githubusercontent.com/fb87/init.nvim/master/init.lua";
-		 sha256 = "sha256-lXTVTULDVkbbwCNvkjqvkv23j2lt9r5AkuK7Uq5QtbE=";
-	       };
-	     };
+	      ".local/share/fonts/typewroter".source = pkgs.fetchzip {
+	        url = "https://dl.dafont.com/dl/?f=typewriter_condensed";
+		name = "typewriter.zip";
+		extension = "zip";
+		stripRoot = false;
+		sha256 = "sha256-O7BeFWvAt5EzAXw9MxigvTKFaba75uNDsEP0Asoq28E=";
+	      };
+            };
 
-	     programs = {
-	       home-manager.enable = true;
+            programs = {
+              home-manager.enable = true;
 
-	       git = {
-	         enable = true;
-		 userName = "Si Dao";
-		 userEmail = "dao@singoc.com";
-                 extraConfig = {
-                   core = { whitespace = "trailing-space,space-before-tab"; };
-                 };
-	       };
+              git = {
+                enable = true;
+                userName = "Si Dao";
+                userEmail = "dao@singoc.com";
+                extraConfig = {
+                  core = { whitespace = "trailing-space,space-before-tab"; };
+                };
+              };
 
-               rofi = {
-                 enable = true;
+              starship = {
+                enable = true;
+              };
 
-                 font = "Operator Mono Light 18";
-                 terminal = "\${pkgs.xst}/bin/xst";
+              bash = {
+                enable = true;
 
-                 theme = "Monokai";
-               };
+                shellAliases = {
+                  gd = "git dot";
 
-               bash = {
-                 enable = true;
+                  ".." = "cd ..";
 
-                 shellAliases = {
-                   gd = "git dot";
+                  hmw = "home-manager switch -b bak --flake $HOME/.nixos";
+                  hme = "$EDITOR $HOME/.nixos/modules/home.nix";
+                  nxe = "$EDITOR $HOME/.nixos/flake.nix";
+                  nxs = "sudo nixos-rebuild switch --flake $HOME/.nixos";
+                  ns = "nix search nixpkgs --no-write-lock-file";
+                };
 
-                   ".." = "cd ..";
+                bashrcExtra = ''
+                                     # get rid of nano
+                                     export EDITOR=nvim
 
-                   hmw = "home-manager switch -b bak --flake $HOME/.nixos";
-                   hme = "$EDITOR $HOME/.nixos/modules/home.nix";
-                   nxe = "$EDITOR $HOME/.nixos/flake.nix";
-                   nxs = "sudo nixos-rebuild switch --flake $HOME/.nixos";
-                   ns = "nix search nixpkgs --no-write-lock-file";
-                 };
+                                     # wanna use local bin
+                                     export PATH=$HOME/.local/bin:$PATH
 
-                 bashrcExtra = ''
-                   # get rid of nano
-                   export EDITOR=nvim
+                                     # use VI mode instead of Emacs
+                                     set -o vi
 
-                   # wanna use local bin
-                   export PATH=$HOME/.local/bin:$PATH
+                  		   if [ -z "$WAYLAND_DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then
+                                       exec sway
+                                     fi
 
-                   # use VI mode instead of Emacs
-                   set -o vi
-
-                   # increase speed of key repeating
-                   if [ ! -z "$DISPLAY" ]; then
-                     xset r rate 400 100
-                   fi
-
-                   eval "$(direnv hook bash)"
-                 '';
-               };
-	     };
-	  })
-	];
+                                     eval "$(direnv hook bash)"
+                '';
+              };
+            };
+          })
+        ];
       };
 
       packages.aarch64-linux.default = nixosConfigurations.installer.config.system.build.sdImage;
