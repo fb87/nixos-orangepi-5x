@@ -158,7 +158,8 @@
 
         environment.loginShellInit = ''
           # https://wiki.archlinux.org/title/Sway
-          if [ -z "$WAYLAND_DISPLAY" ] && [ "$XDG_VTNR" -eq 1 ]; then
+          if [ -z "$WAYLAND_DISPLAY" ] && [ "_$XDG_VTNR" == "_1" ] && [ "_$(tty)" == "_/dev/tty1" ]; then
+            MOZ_ENABLE_WAYLAND=1 QT_QPA_PLATFORM=wayland XDG_SESSION_TYPE=wayland
             exec sway
           fi
         '';
@@ -361,8 +362,14 @@
                 packages = with pkgs; [
                   neofetch
                   pavucontrol
+
+		  starship
+		  direnv
+		  librewolf
                 ];
               };
+
+	      services.getty.autologinUser = "dao";
 
               nix = {
                 settings = {
