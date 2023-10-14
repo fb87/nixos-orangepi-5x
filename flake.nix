@@ -17,6 +17,8 @@
 
   outputs = inputs@{ nixpkgs, ... }:
     let
+      user = "dao";
+
       pkgs = import nixpkgs { system = "aarch64-linux"; };
       rkbin = pkgs.stdenvNoCC.mkDerivation {
         pname = "rkbin";
@@ -86,6 +88,18 @@
         '';
       };
 
+      rk-valhal = pkgs.runCommand "" {
+	src = pkgs.fetchurl {
+	  url = "https://github.com/JeffyCN/mirrors/raw/libmali/lib/aarch64-linux-gnu/libmali-valhall-g610-g6p0-x11-wayland-gbm.so";
+	  sha256 = "0yzwlc1mm7adqv804jqm2ikkn1ji0pv1fpxjb9xxw69r2wbmlhkl";
+	};
+      } ''
+        mkdir $out/lib -p
+        cp $src $out/lib/libmali.so.1
+        ln -s libmali.so.1 $out/lib/libmali-valhall-g610-g6p0-x11-wayland-gbm.so
+        for l in libEGL.so libEGL.so.1 libgbm.so.1 libGLESv2.so libGLESv2.so.2 libOpenCL.so.1; do ln -s libmali.so.1 $out/lib/$l; done
+      '';
+
       nixos-orangepi-5x = pkgs.stdenvNoCC.mkDerivation {
         pname = "nixos-orangepi-5x";
         version = "unstable";
@@ -128,6 +142,7 @@
                 src = inputs.mesa-panfork;
               })
             ).drivers;
+	    extraPackages = [ rk-valhal ];
           };
 
           firmware = [ (pkgs.callPackage ./board/firmware { }) ];
@@ -143,7 +158,6 @@
         environment.systemPackages = with pkgs; [
           git
           htop
-          neovim
           neofetch
 
           # only wayland can utily GPU as of now
@@ -154,20 +168,27 @@
           foot
           wdisplays
           wofi
+	  gnome.adwaita-icon-theme
         ];
 
         environment.loginShellInit = ''
           # https://wiki.archlinux.org/title/Sway
+	  export GDK_BACKEND=wayland
+          export MOZ_ENABLE_WAYLAND=1
+	  export QT_QPA_PLATFORM=wayland
+	  export XDG_SESSION_TYPE=wayland
+
           if [ -z "$WAYLAND_DISPLAY" ] && [ "_$XDG_VTNR" == "_1" ] && [ "_$(tty)" == "_/dev/tty1" ]; then
-            MOZ_ENABLE_WAYLAND=1 QT_QPA_PLATFORM=wayland XDG_SESSION_TYPE=wayland
-            exec sway
+            exec ${pkgs.sway}/bin/sway
           fi
         '';
 
-        programs.sway = {
-          enable = true;
-          wrapperFeatures.gtk = true;
-        };
+        programs = {
+	  sway.enable = true;
+	  starship.enable = true;
+	  neovim.enable = true;
+	  neovim.defaultEditor = true;
+	};
 
         services.openssh.enable = true;
 
@@ -303,49 +324,18 @@
           ({ pkgs, lib, ... }:
             {
               boot = {
-                loader = {
-                  grub.enable = false;
-                  generic-extlinux-compatible.enable = true;
-                };
-
+                loader = { grub.enable = false; generic-extlinux-compatible.enable = true; };
                 initrd.luks.devices."Encrypted".device = "/dev/disk/by-partlabel/Encrypted";
                 initrd.availableKernelModules = lib.mkForce [ "dm_mod" "dm_crypt" "encrypted_keys" ];
               };
 
-              fileSystems."/" =
-                {
-                  device = "none";
-                  fsType = "tmpfs";
-                  options = [ "mode=0755,size=8G" ];
-                };
+              fileSystems."/" = 	{ device = "none"; fsType = "tmpfs"; options = [ "mode=0755,size=8G" ]; };
+              fileSystems."/boot" = 	{ device = "/dev/disk/by-partlabel/Firmwares"; fsType = "vfat"; };
+              fileSystems."/nix" = 	{ device = "/dev/mapper/Encrypted"; fsType = "btrfs"; options = [ "subvol=nix,compress=zstd,noatime" ]; };
+              fileSystems."/home/${user}" = { device = "/dev/mapper/Encrypted"; fsType = "btrfs"; options = [ "subvol=usr,compress=zstd,noatime" ]; };
 
               # why not, we have 16GiB RAM
-              fileSystems."/tmp" =
-                {
-                  device = "none";
-                  fsType = "tmpfs";
-                  options = [ "mode=0755,size=12G" ];
-                };
-
-              fileSystems."/boot" =
-                {
-                  device = "/dev/disk/by-partlabel/Firmwares";
-                  fsType = "vfat";
-                };
-
-              fileSystems."/nix" =
-                {
-                  device = "/dev/mapper/Encrypted";
-                  fsType = "btrfs";
-                  options = [ "subvol=nix,compress=zstd,noatime" ];
-                };
-
-              fileSystems."/home/dao" =
-                {
-                  device = "/dev/mapper/Encrypted";
-                  fsType = "btrfs";
-                  options = [ "subvol=usr,compress=zstd,noatime" ];
-                };
+              fileSystems."/tmp" = { device = "none"; fsType = "tmpfs"; options = [ "mode=0755,size=12G" ]; };
 
               networking = {
                 hostName = "singoc";
@@ -355,21 +345,19 @@
               time.timeZone = "Asia/Ho_Chi_Minh";
               i18n.defaultLocale = "en_US.UTF-8";
 
-              users.users.dao = {
+              users.users.${user} = {
                 isNormalUser = true;
-                initialPassword = "dao";
+                initialPassword = "${user}";
                 extraGroups = [ "wheel" "networkmanager" "tty" "video" ];
                 packages = with pkgs; [
                   neofetch
                   pavucontrol
-
-		  starship
 		  direnv
 		  librewolf
                 ];
               };
 
-	      services.getty.autologinUser = "dao";
+	      services.getty.autologinUser = "${user}";
 
               nix = {
                 settings = {
@@ -385,7 +373,7 @@
 
                 # Free up to 1GiB whenever there is less than 100MiB left.
                 extraOptions = ''
-                  min-free = ${toString (100 * 1024 * 1024)}
+                  min-free = ${toString ( 100 * 1024 * 1024)}
                   max-free = ${toString (1024 * 1024 * 1024)}
                 '';
               };
