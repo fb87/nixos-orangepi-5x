@@ -165,6 +165,7 @@
           waybar
           swaylock
           swayidle
+	  swayfx
           foot
           wdisplays
           wofi
@@ -179,18 +180,24 @@
 	  export XDG_SESSION_TYPE=wayland
 
           if [ -z "$WAYLAND_DISPLAY" ] && [ "_$XDG_VTNR" == "_1" ] && [ "_$(tty)" == "_/dev/tty1" ]; then
-            exec ${pkgs.sway}/bin/sway
+	    dunst&
+            exec ${pkgs.swayfx}/bin/sway
           fi
+
+	  alias e=nvim
+	  alias rebuild='sudo nixos-rebuild switch --flake .'
         '';
 
         programs = {
 	  sway.enable = true;
+	  sway.package = null;
+
+	  hyprland.enable = true;
+
 	  starship.enable = true;
 	  neovim.enable = true;
 	  neovim.defaultEditor = true;
 	};
-
-        services.openssh.enable = true;
 
         system.stateVersion = "23.05";
       };
@@ -353,6 +360,7 @@
                   neofetch
                   pavucontrol
 		  direnv
+		  dunst
 		  librewolf
                 ];
               };
