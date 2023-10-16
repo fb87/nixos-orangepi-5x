@@ -88,17 +88,28 @@
         '';
       };
 
-      rk-valhal = pkgs.runCommand "" {
+      rk-valhal = pkgs.stdenv.mkDerivation rec {
+	pname = "valhall";
+	version = "1.9.0";
+
+	phases = "installPhase fixupPhase";
+
+        buildInputs = with pkgs; [ wayland stdenv.cc.cc.lib libdrm xorg.libxcb xorg.libX11 ];
+        nativeBuildInputs = [ pkgs.autoPatchelfHook ];
+
 	src = pkgs.fetchurl {
-	  url = "https://github.com/JeffyCN/mirrors/raw/libmali/lib/aarch64-linux-gnu/libmali-valhall-g610-g6p0-x11-wayland-gbm.so";
-	  sha256 = "0yzwlc1mm7adqv804jqm2ikkn1ji0pv1fpxjb9xxw69r2wbmlhkl";
+	  url = "https://github.com/JeffyCN/mirrors/raw/libmali/lib/aarch64-linux-gnu/libmali-valhall-g610-g13p0-x11-wayland-gbm.so";
+	  sha256 = "1ksk42qv8byddq2nk3iz0kzgkbxpl5r5pfkfsarldxzb8jsn6478";
 	};
-      } ''
-        mkdir $out/lib -p
-        cp $src $out/lib/libmali.so.1
-        ln -s libmali.so.1 $out/lib/libmali-valhall-g610-g6p0-x11-wayland-gbm.so
-        for l in libEGL.so libEGL.so.1 libgbm.so.1 libGLESv2.so libGLESv2.so.2 libOpenCL.so.1; do ln -s libmali.so.1 $out/lib/$l; done
-      '';
+
+	installPhase = ''
+          mkdir $out/lib -p
+          install -m551 $src $out/lib/libmali.so.1
+
+          ln -s libmali.so.1 $out/lib/libmali-valhall-g610-g13p0-x11-wayland-gbm.so
+          for l in libEGL.so libEGL.so.1 libgbm.so.1 libGLESv2.so libGLESv2.so.2 libOpenCL.so.1; do ln -s libmali.so.1 $out/lib/$l; done
+        '';
+      };
 
       nixos-orangepi-5x = pkgs.stdenvNoCC.mkDerivation {
         pname = "nixos-orangepi-5x";
@@ -165,7 +176,6 @@
           waybar
           swaylock
           swayidle
-	  swayfx
           foot
           wdisplays
           wofi
@@ -181,7 +191,7 @@
 
           if [ -z "$WAYLAND_DISPLAY" ] && [ "_$XDG_VTNR" == "_1" ] && [ "_$(tty)" == "_/dev/tty1" ]; then
 	    dunst&
-            exec ${pkgs.swayfx}/bin/sway
+            exec ${pkgs.sway}/bin/sway
           fi
 
 	  alias e=nvim
@@ -190,9 +200,6 @@
 
         programs = {
 	  sway.enable = true;
-	  sway.package = null;
-
-	  hyprland.enable = true;
 
 	  starship.enable = true;
 	  neovim.enable = true;
@@ -296,7 +303,6 @@
 
                   [ -f $tmp/flake.nix ] && nix build $tmp/flake.nix#singoc
                 '')
-
               ];
             };
 
@@ -362,10 +368,14 @@
 		  direnv
 		  dunst
 		  librewolf
+		  nerdfonts
+		  wf-recorder
                 ];
               };
 
 	      services.getty.autologinUser = "${user}";
+
+	      virtualisation.podman.enable = true;
 
               nix = {
                 settings = {
