@@ -88,7 +88,7 @@
         '';
       };
 
-      rk-valhal = pkgs.stdenv.mkDerivation rec {
+      rk-valhall = pkgs.stdenv.mkDerivation rec {
 	pname = "valhall";
 	version = "1.9.0";
 
@@ -153,7 +153,7 @@
                 src = inputs.mesa-panfork;
               })
             ).drivers;
-	    extraPackages = [ rk-valhal ];
+	    extraPackages = [ rk-valhall ];
           };
 
           firmware = [ (pkgs.callPackage ./board/firmware { }) ];
@@ -180,7 +180,7 @@
           wdisplays
           wofi
 	  gnome.adwaita-icon-theme
-        ];
+        ] ++ [ u-boot ]; # we need u-boot for our experimences
 
         environment.loginShellInit = ''
           # https://wiki.archlinux.org/title/Sway
@@ -369,7 +369,15 @@
 		  dunst
 		  librewolf
 		  nerdfonts
-		  wf-recorder
+
+		  slurp         # screen/region selector
+		  grim          # screenshot
+		  wf-recorder   # screen recorder
+		  ffmpeg_6-full #video playback
+
+		  (pkgs.writeScriptBin "drawio" ''
+		    ${pkgs.drawio}/bin/drawio --enable-features=UseOzonePlatform --ozone-platform=wayland
+		  '')
                 ];
               };
 
