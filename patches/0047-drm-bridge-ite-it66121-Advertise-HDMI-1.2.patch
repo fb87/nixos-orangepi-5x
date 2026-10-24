@@ -1,0 +1,159 @@
+From mboxrd@z Thu Jan  1 00:00:00 1970
+Return-Path: <linux-rockchip-bounces+linux-rockchip=archiver.kernel.org@lists.infradead.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 31834C55173
+	for <linux-rockchip@archiver.kernel.org>; Fri, 31 Jul 2026 16:24:04 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=lists.infradead.org; s=bombadil.20210309; h=Sender:
+	Content-Transfer-Encoding:Content-Type:List-Subscribe:List-Help:List-Post:
+	List-Archive:List-Unsubscribe:List-Id:Cc:To:In-Reply-To:References:Message-Id
+	:MIME-Version:Subject:Date:From:Reply-To:Content-ID:Content-Description:
+	Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:
+	List-Owner; bh=3lO565s4b3wwjPqqJNNpWwG9N9ftCtVHmPH7F8Ohs1E=; b=mh9w4fMZFNbu+m
+	Sn3Ke497ovZ6dLlT05/O5x9Yxy9XNgYLL29VfJvTieJR8aCrkLfUcz1LhdURlzK1WcGY4nNUvRvE0
+	MaD1IOOIEuyPOyETFHH3s0/143QplSrgfGsNNjSEXod3CnJuB3u8pThSZ9zFTmADNLaCwcidr/HGI
+	JIuDQTSDwnfGq+rbJ97NWBzhuMERW6WqySwlm3Qh6DzDj4UPmrpZXSmSMRGqEY1cGYW3+97o5a9xh
+	H8oom46FJYmppv/VNNQ0PHkywCfwuub2G+1kLnSJb1BA8HHsmwcJhGRQR3rmO8x0OHE6dQhesz4ij
+	KrE05EkyTwNH0Qd1eV5A==;
+Received: from localhost ([::1] helo=bombadil.infradead.org)
+	by bombadil.infradead.org with esmtp (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wpq1f-0000000D3I0-3eqk;
+	Fri, 31 Jul 2026 16:23:59 +0000
+Received: from desiato.infradead.org ([2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+	by bombadil.infradead.org with esmtps (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wppxp-0000000Czpv-40X6;
+	Fri, 31 Jul 2026 16:20:01 +0000
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=desiato.20200630; h=Cc:To:In-Reply-To:References:
+	Message-Id:Content-Transfer-Encoding:Content-Type:MIME-Version:Subject:Date:
+	From:Sender:Reply-To:Content-ID:Content-Description;
+	bh=IHeesaJVgZhODLJEt2qmHsP6Es6q1uAxOplOykYQedM=; b=ch9XOQYMT++eowZtG0PMmslUfq
+	IsH1/RV6zg2UXuYcrFU3mdX+2T59T9wZKWqpi+HgFn9uKEpTSPS9JA+KZPycW9IvAjR9e6G3UUdwe
+	MWBrkYx+Ra6xf/Orvd24ZJq6uT878eIBk7SS2RlH3YI5KItmayC16SH7onhpCigOYIsI68L08mAH3
+	xwJhlgYHHUmo67tCe1ULItvv2M/Yu8U8r92fI4MnAc/SzxBxWtNTLo/Pz3fxL63aQa1IA+Z5xOoEL
+	HAxwXgzEkD3QqX38VbAPOfdaqeohL+wBX/qOSfuaHcp4zez1LePqJQC+GQMNz/4JVkGDislXX197T
+	Xp98DaXA==;
+Received: from bali.collaboradmins.com ([148.251.105.195])
+	by desiato.infradead.org with esmtps (Exim 4.99.2 #2 (Red Hat Linux))
+	id 1wppxl-00000007b9C-2dQG;
+	Fri, 31 Jul 2026 16:19:59 +0000
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=collabora.com;
+	s=mail; t=1785514791;
+	bh=sA9hvcyp15eD/qblsyZ0XpFBugSaj6mhi+/AmnkxIDY=;
+	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
+	b=fKlWS2BQ9dRVs3IfHTGb4xDa37lKfuv0PoV87f0mci1XAKivqLCk6jMeqK+7QchEB
+	 1koxi0GGIJzc4DBIicvY4q4aX1J9yh3u9EsM6IxMU/tixuEEXPf8kpDCAuatd7iCvx
+	 +7wzVBmaqlBE5BEHHETSdyS61T07FJXDkjYSt5cuKaruplmuEQQwsUo6uX65fUFYF4
+	 ph0zDDOb81Tk15Mqr4IGZHYQHejWfOe1TaibzgRAVF3Deyx99D+pXtTj24FdVIihZb
+	 QMLS88og1I7mrjuPVYo1o2X29NF+RNTqqzFk5D56+xVmJKphB5SEo23KVzkNFEU/AF
+	 naXgccTTPV3Nw==
+Received: from localhost (unknown [100.64.0.241])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange secp256r1 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	(Authenticated sender: cristicc)
+	by bali.collaboradmins.com (Postfix) with ESMTPSA id C99E217E08E9;
+	Fri, 31 Jul 2026 18:19:51 +0200 (CEST)
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Fri, 31 Jul 2026 19:19:59 +0300
+Subject: [PATCH v10 52/69] drm/bridge: ite-it66121: Advertise HDMI 1.2
+ capabilities
+MIME-Version: 1.0
+Message-Id: <20260731-dw-hdmi-qp-scramb-v10-52-294364b2cf15@collabora.com>
+References: <20260731-dw-hdmi-qp-scramb-v10-0-294364b2cf15@collabora.com>
+In-Reply-To: <20260731-dw-hdmi-qp-scramb-v10-0-294364b2cf15@collabora.com>
+To: Andrzej Hajda <andrzej.hajda@intel.com>, 
+ Neil Armstrong <neil.armstrong@linaro.org>, Robert Foss <rfoss@kernel.org>, 
+ Laurent Pinchart <Laurent.pinchart@ideasonboard.com>, 
+ Jonas Karlman <jonas@kwiboo.se>, Jernej Skrabec <jernej.skrabec@gmail.com>, 
+ Luca Ceresoli <luca.ceresoli@bootlin.com>, 
+ Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+ Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+ David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
+ Chen-Yu Tsai <wens@kernel.org>, Samuel Holland <samuel@sholland.org>, 
+ Dave Stevenson <dave.stevenson@raspberrypi.com>, 
+ =?utf-8?q?Ma=C3=ADra_Canal?= <mcanal@igalia.com>, 
+ Raspberry Pi Kernel Maintenance <kernel-list@raspberrypi.com>, 
+ Sandy Huang <hjc@rock-chips.com>, 
+ =?utf-8?q?Heiko_St=C3=BCbner?= <heiko@sntech.de>, 
+ Andy Yan <andy.yan@rock-chips.com>, Algea Cao <algea.cao@rock-chips.com>, 
+ Daniel Stone <daniels@collabora.com>, Liu Ying <victor.liu@nxp.com>, 
+ Phong LE <ple@baylibre.com>
+Cc: kernel@collabora.com, linux-kernel@vger.kernel.org, 
+ dri-devel@lists.freedesktop.org, linux-arm-kernel@lists.infradead.org, 
+ linux-sunxi@lists.linux.dev, linux-rockchip@lists.infradead.org
+X-Mailer: b4 0.15.2
+X-CRM114-Version: 20100106-BlameMichelson ( TRE 0.9.0 (BSD) ) MR-646709E3 
+X-CRM114-CacheID: sfid-20260731_171957_864771_4DDF78CB 
+X-CRM114-Status: GOOD (  13.75  )
+X-BeenThere: linux-rockchip@lists.infradead.org
+X-Mailman-Version: 2.1.34
+Precedence: list
+List-Id: Upstream kernel work for Rockchip platforms <linux-rockchip.lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-rockchip>,
+ <mailto:linux-rockchip-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-rockchip/>
+List-Post: <mailto:linux-rockchip@lists.infradead.org>
+List-Help: <mailto:linux-rockchip-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-rockchip>,
+ <mailto:linux-rockchip-request@lists.infradead.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: "Linux-rockchip" <linux-rockchip-bounces@lists.infradead.org>
+Errors-To: linux-rockchip-bounces+linux-rockchip=archiver.kernel.org@lists.infradead.org
+
+Bridges using DRM_BRIDGE_OP_HDMI are now expected to also provide a
+supported HDMI version.  This is not yet enforced, but will become
+mandatory once the migration to the new caps-based HDMI connector
+initialization API is completed.
+
+Since none of the chip variants handled by the driver can drive a TMDS
+character rate exceeding 148.5 MHz, advertise HDMI 1.2 as the supported
+version.  HDMI 1.2 allows up to 165 MHz, so set the bridge's
+max_tmds_char_rate to ensure the connector limit derived from
+supported_hdmi_ver remains within the hardware capabilities.
+
+drm_bridge_connector_atomic_check() runs
+drm_atomic_helper_connector_hdmi_check(), which rejects modes whose
+computed TMDS character rate exceeds the connector limit before invoking
+the driver's .tmds_char_rate_valid() hook, making the max_rate check in
+it66121_bridge_hdmi_tmds_char_rate_valid() redundant.  Drop it.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+diff --git a/drivers/gpu/drm/bridge/ite-it66121.c b/drivers/gpu/drm/bridge/ite-it66121.c
+index ed21f09cd..dc998d90d 100644
+--- a/drivers/gpu/drm/bridge/ite-it66121.c
++++ b/drivers/gpu/drm/bridge/ite-it66121.c
+@@ -10,6 +10,7 @@
+ #include <linux/media-bus-format.h>
+ #include <linux/module.h>
+ #include <linux/device.h>
++#include <linux/hdmi.h>
+ #include <linux/interrupt.h>
+ #include <linux/i2c.h>
+ #include <linux/bitfield.h>
+@@ -1594,6 +1595,10 @@ static int it66121_probe(struct i2c_client *client)
+ 	ctx->bridge.of_node = dev->of_node;
+ 	ctx->bridge.type = DRM_MODE_CONNECTOR_HDMIA;
+ 	ctx->bridge.ops = DRM_BRIDGE_OP_DETECT | DRM_BRIDGE_OP_EDID;
++	ctx->bridge.vendor = "ITE";
++	ctx->bridge.product = "IT66121";
++	ctx->bridge.supported_hdmi_ver = HDMI_VERSION_1_2;
++	ctx->bridge.max_tmds_char_rate = ctx->bus_width == 12 ? 74250000ULL : 148500000ULL;
+ 	if (client->irq > 0) {
+ 		ctx->bridge.ops |= DRM_BRIDGE_OP_HPD;
+ 
+
+-- 
+2.55.0
+
+
+_______________________________________________
+Linux-rockchip mailing list
+Linux-rockchip@lists.infradead.org
+http://lists.infradead.org/mailman/listinfo/linux-rockchip

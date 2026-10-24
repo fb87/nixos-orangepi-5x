@@ -1,0 +1,128 @@
+From mboxrd@z Thu Jan  1 00:00:00 1970
+Return-Path: <linux-rockchip-bounces+linux-rockchip=archiver.kernel.org@lists.infradead.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 83943C5516F
+	for <linux-rockchip@archiver.kernel.org>; Fri, 31 Jul 2026 16:24:36 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=lists.infradead.org; s=bombadil.20210309; h=Sender:
+	Content-Transfer-Encoding:Content-Type:List-Subscribe:List-Help:List-Post:
+	List-Archive:List-Unsubscribe:List-Id:Cc:To:In-Reply-To:References:Message-Id
+	:MIME-Version:Subject:Date:From:Reply-To:Content-ID:Content-Description:
+	Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:
+	List-Owner; bh=CH0GxxOJLNTTEgy87VZJJ8spPuiHkE9kgPTeaitlA1g=; b=n9mnFnbwbZu320
+	npw4oEDUip8xZY4mOpyzsJgcGCbgTbqD3/Ul3+eJSIU2c79FBZyJ/9tzjI3GtTqYBM2gSofa7NAEt
+	W/Vi6+RbNbCDSNCvpx3k0PWkj4gwuLEx16ctAUNOexLrmyM28DvzGaKFezFK6TWupBMn/LdxTJvQ5
+	OTUPT+wtAQCRq8eOb1wZkD0g5/dep2oyqh/DDpafBxboC7x9dPIQzrzO1J4yMcX6Z621H8eDfwjNH
+	3kbJz5j6Z6UKaF0PLKcAOZZjopaKcXuqnB8VgHrMqqCRDrExgZK31cdzWS5bT3UUsUCFZzVLGoXGW
+	dvySFN4xoALrfSq1/5vg==;
+Received: from localhost ([::1] helo=bombadil.infradead.org)
+	by bombadil.infradead.org with esmtp (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wpq2D-0000000D4ed-1Z4u;
+	Fri, 31 Jul 2026 16:24:33 +0000
+Received: from bali.collaboradmins.com ([148.251.105.195])
+	by bombadil.infradead.org with esmtps (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wppxq-0000000Czot-02ds;
+	Fri, 31 Jul 2026 16:20:10 +0000
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=collabora.com;
+	s=mail; t=1785514796;
+	bh=9+B0lSYbOtT/mNa8n8pzlwF+N7/unRvesgf3I/R8mRg=;
+	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
+	b=IIwuyw5BA8jWEPG+nGLqT+NOCEphHcfyU5Bv02DsdqmgRqmnlqBRA5WyVs4xzvgK9
+	 XQ1FXf4obJSaq/BTvb9wd4aKLbCyuqZG8CgM/+kN9ipMDhdOaxlS4+uMBxuflW08ll
+	 55QCZEvTLx+Mk7PSZTwTvMGUPKiIVPwS6D7gFAViwqTGrS1bIGPxS07eiJcOb1R2Zv
+	 TngoOaQTi4RbDv5bJTO4V+NRRxZ5/IkThkb0SpeS7d1zhVZI17VC99xm2PRN1eB8tc
+	 18tFrJTsU6x7M7KDvdDETwUGX5lFRVLUCTeAms24dq1+taOMlrPTVV4WEhhsaHO2D9
+	 fqm6ew1wZLoyA==
+Received: from localhost (unknown [100.64.0.241])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange secp256r1 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	(Authenticated sender: cristicc)
+	by bali.collaboradmins.com (Postfix) with ESMTPSA id AB5A617E09A3;
+	Fri, 31 Jul 2026 18:19:56 +0200 (CEST)
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Fri, 31 Jul 2026 19:20:06 +0300
+Subject: [PATCH v10 59/69] drm/tests: bridge: Set supported HDMI version
+MIME-Version: 1.0
+Message-Id: <20260731-dw-hdmi-qp-scramb-v10-59-294364b2cf15@collabora.com>
+References: <20260731-dw-hdmi-qp-scramb-v10-0-294364b2cf15@collabora.com>
+In-Reply-To: <20260731-dw-hdmi-qp-scramb-v10-0-294364b2cf15@collabora.com>
+To: Andrzej Hajda <andrzej.hajda@intel.com>, 
+ Neil Armstrong <neil.armstrong@linaro.org>, Robert Foss <rfoss@kernel.org>, 
+ Laurent Pinchart <Laurent.pinchart@ideasonboard.com>, 
+ Jonas Karlman <jonas@kwiboo.se>, Jernej Skrabec <jernej.skrabec@gmail.com>, 
+ Luca Ceresoli <luca.ceresoli@bootlin.com>, 
+ Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+ Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+ David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
+ Chen-Yu Tsai <wens@kernel.org>, Samuel Holland <samuel@sholland.org>, 
+ Dave Stevenson <dave.stevenson@raspberrypi.com>, 
+ =?utf-8?q?Ma=C3=ADra_Canal?= <mcanal@igalia.com>, 
+ Raspberry Pi Kernel Maintenance <kernel-list@raspberrypi.com>, 
+ Sandy Huang <hjc@rock-chips.com>, 
+ =?utf-8?q?Heiko_St=C3=BCbner?= <heiko@sntech.de>, 
+ Andy Yan <andy.yan@rock-chips.com>, Algea Cao <algea.cao@rock-chips.com>, 
+ Daniel Stone <daniels@collabora.com>, Liu Ying <victor.liu@nxp.com>, 
+ Phong LE <ple@baylibre.com>
+Cc: kernel@collabora.com, linux-kernel@vger.kernel.org, 
+ dri-devel@lists.freedesktop.org, linux-arm-kernel@lists.infradead.org, 
+ linux-sunxi@lists.linux.dev, linux-rockchip@lists.infradead.org
+X-Mailer: b4 0.15.2
+X-CRM114-Version: 20100106-BlameMichelson ( TRE 0.9.0 (BSD) ) MR-646709E3 
+X-CRM114-CacheID: sfid-20260731_092002_279554_F911D592 
+X-CRM114-Status: UNSURE (   9.34  )
+X-CRM114-Notice: Please train this message.
+X-BeenThere: linux-rockchip@lists.infradead.org
+X-Mailman-Version: 2.1.34
+Precedence: list
+List-Id: Upstream kernel work for Rockchip platforms <linux-rockchip.lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-rockchip>,
+ <mailto:linux-rockchip-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-rockchip/>
+List-Post: <mailto:linux-rockchip@lists.infradead.org>
+List-Help: <mailto:linux-rockchip-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-rockchip>,
+ <mailto:linux-rockchip-request@lists.infradead.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: "Linux-rockchip" <linux-rockchip-bounces@lists.infradead.org>
+Errors-To: linux-rockchip-bounces+linux-rockchip=archiver.kernel.org@lists.infradead.org
+
+Bridges using DRM_BRIDGE_OP_HDMI are now expected to also provide a
+supported HDMI version.  This is not yet enforced, but will become
+mandatory once the migration to the new HDMI connector initialization API
+is completed.
+
+Advertise HDMI 1.4 as the default for the test bridges, since that is
+the highest version that does not require additional initialization
+data.  This also avoids implying support for HDMI capabilities they do
+not currently model.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+diff --git a/drivers/gpu/drm/tests/drm_bridge_test.c b/drivers/gpu/drm/tests/drm_bridge_test.c
+index 887020141..b008561bc 100644
+--- a/drivers/gpu/drm/tests/drm_bridge_test.c
++++ b/drivers/gpu/drm/tests/drm_bridge_test.c
+@@ -8,6 +8,8 @@
+ #include <drm/drm_bridge_helper.h>
+ #include <drm/drm_kunit_helpers.h>
+ 
++#include <linux/hdmi.h>
++
+ #include <kunit/device.h>
+ #include <kunit/test.h>
+ 
+
+-- 
+2.55.0
+
+
+_______________________________________________
+Linux-rockchip mailing list
+Linux-rockchip@lists.infradead.org
+http://lists.infradead.org/mailman/listinfo/linux-rockchip

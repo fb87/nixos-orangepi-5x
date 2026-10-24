@@ -1,0 +1,123 @@
+From mboxrd@z Thu Jan  1 00:00:00 1970
+Return-Path: <linux-rockchip-bounces+linux-rockchip=archiver.kernel.org@lists.infradead.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id B914FC55173
+	for <linux-rockchip@archiver.kernel.org>; Fri, 31 Jul 2026 16:25:10 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=lists.infradead.org; s=bombadil.20210309; h=Sender:
+	Content-Transfer-Encoding:Content-Type:List-Subscribe:List-Help:List-Post:
+	List-Archive:List-Unsubscribe:List-Id:Cc:To:In-Reply-To:References:Message-Id
+	:MIME-Version:Subject:Date:From:Reply-To:Content-ID:Content-Description:
+	Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:
+	List-Owner; bh=kZIlzGyH+DAjirSSdZRQ6Br1KA5uKrB36aXT6vXV96w=; b=Gcmjge/zspAkmi
+	kURbgV+gPM9N+lMpd2otC7693pPgxYEYjeKDirSscs0oq7tcCQCKe8aOQbsIWTxvJQ3ChymDDv/FF
+	6Gwcp2ZVWGSW6xFQ3GdOyGzjRT9smQkz+qBWuvJtOUQlyVENocuBTKICWztDVTThkmkotHPZmuQAM
+	NqJID4adbmc9l9pb/AS8K0SGM8FXOHFHUWQ+Z+UuhwijZ/wYTQb7285DCYeeXng9YyTqd0nF/f85y
+	aYIQUv0lGmQiLe+GQVZ2XGaPzjVdo+BxNrgh3t01Da/2ZYqryhnzqS41TXTL6t90HM9xIQgi2XHzN
+	OPM5MZnhCs+EEd1THjDQ==;
+Received: from localhost ([::1] helo=bombadil.infradead.org)
+	by bombadil.infradead.org with esmtp (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wpq2l-0000000D5cW-0pM5;
+	Fri, 31 Jul 2026 16:25:07 +0000
+Received: from bali.collaboradmins.com ([148.251.105.195])
+	by bombadil.infradead.org with esmtps (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wppxu-0000000CzxV-2jN0;
+	Fri, 31 Jul 2026 16:20:18 +0000
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=collabora.com;
+	s=mail; t=1785514801;
+	bh=vWcJ/JgrICjAc8uhqU0IXmoYxp/H9UrDLzNmmi7RCMs=;
+	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
+	b=p9XQARIxBBnMZPKg8/va8IlWbRR50o3FETfmVCCp8aHR0YPN7W3AhIPJ6aR8N61tF
+	 AbopA7VeDxkf1MgYvERrjrlbZfXvZoQcwvKPdnznlmidnQ2GwRcYcNzaSr7hw5+8pB
+	 3e9LxwO1fHMWxgQSbr3SXd2QvNP+CB2KZ+wD1QMVv9a3NzwIfKcq8m8qHRDcCJ57bl
+	 NJFhOXvc0QQfBSBdtZFOmWevxWiuUz3+MU9tJ/Z/xOTgOuuocImp5LFjdACqr3c9W+
+	 OICIbkuYPxOeCytKyxajMknIP9UQn2WFjNwbfUBMwVB0h3cLfknlIrq9Ds3Z4PruSO
+	 rAjdKF54OypVw==
+Received: from localhost (unknown [100.64.0.241])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange secp256r1 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	(Authenticated sender: cristicc)
+	by bali.collaboradmins.com (Postfix) with ESMTPSA id E149F17E098E;
+	Fri, 31 Jul 2026 18:20:00 +0200 (CEST)
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Fri, 31 Jul 2026 19:20:12 +0300
+Subject: [PATCH v10 65/69] drm/tests: hdmi_state_helper: Cover source-side
+ scrambling decision
+MIME-Version: 1.0
+Message-Id: <20260731-dw-hdmi-qp-scramb-v10-65-294364b2cf15@collabora.com>
+References: <20260731-dw-hdmi-qp-scramb-v10-0-294364b2cf15@collabora.com>
+In-Reply-To: <20260731-dw-hdmi-qp-scramb-v10-0-294364b2cf15@collabora.com>
+To: Andrzej Hajda <andrzej.hajda@intel.com>, 
+ Neil Armstrong <neil.armstrong@linaro.org>, Robert Foss <rfoss@kernel.org>, 
+ Laurent Pinchart <Laurent.pinchart@ideasonboard.com>, 
+ Jonas Karlman <jonas@kwiboo.se>, Jernej Skrabec <jernej.skrabec@gmail.com>, 
+ Luca Ceresoli <luca.ceresoli@bootlin.com>, 
+ Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+ Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+ David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
+ Chen-Yu Tsai <wens@kernel.org>, Samuel Holland <samuel@sholland.org>, 
+ Dave Stevenson <dave.stevenson@raspberrypi.com>, 
+ =?utf-8?q?Ma=C3=ADra_Canal?= <mcanal@igalia.com>, 
+ Raspberry Pi Kernel Maintenance <kernel-list@raspberrypi.com>, 
+ Sandy Huang <hjc@rock-chips.com>, 
+ =?utf-8?q?Heiko_St=C3=BCbner?= <heiko@sntech.de>, 
+ Andy Yan <andy.yan@rock-chips.com>, Algea Cao <algea.cao@rock-chips.com>, 
+ Daniel Stone <daniels@collabora.com>, Liu Ying <victor.liu@nxp.com>, 
+ Phong LE <ple@baylibre.com>
+Cc: kernel@collabora.com, linux-kernel@vger.kernel.org, 
+ dri-devel@lists.freedesktop.org, linux-arm-kernel@lists.infradead.org, 
+ linux-sunxi@lists.linux.dev, linux-rockchip@lists.infradead.org
+X-Mailer: b4 0.15.2
+X-CRM114-Version: 20100106-BlameMichelson ( TRE 0.9.0 (BSD) ) MR-646709E3 
+X-CRM114-CacheID: sfid-20260731_092006_936381_08E9D25D 
+X-CRM114-Status: GOOD (  13.58  )
+X-BeenThere: linux-rockchip@lists.infradead.org
+X-Mailman-Version: 2.1.34
+Precedence: list
+List-Id: Upstream kernel work for Rockchip platforms <linux-rockchip.lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-rockchip>,
+ <mailto:linux-rockchip-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-rockchip/>
+List-Post: <mailto:linux-rockchip@lists.infradead.org>
+List-Help: <mailto:linux-rockchip-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-rockchip>,
+ <mailto:linux-rockchip-request@lists.infradead.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: "Linux-rockchip" <linux-rockchip-bounces@lists.infradead.org>
+Errors-To: linux-rockchip-bounces+linux-rockchip=archiver.kernel.org@lists.infradead.org
+
+Add a couple of atomic-check cases that initialise an HDMI 2.0
+connector, so the core infers the scrambler support and the 600 MHz TMDS
+limit, and assert that conn_state->hdmi.scrambler_needed stays clear for
+a 1080p@60 CEA mode (~148.5 MHz TMDS) and is set for the 4K@60 RGB
+preferred mode (~594 MHz TMDS), straddling the 340 MHz threshold.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+diff --git a/drivers/gpu/drm/tests/drm_hdmi_state_helper_test.c b/drivers/gpu/drm/tests/drm_hdmi_state_helper_test.c
+index 770f407df..daf4a0fe3 100644
+--- a/drivers/gpu/drm/tests/drm_hdmi_state_helper_test.c
++++ b/drivers/gpu/drm/tests/drm_hdmi_state_helper_test.c
+@@ -2,6 +2,7 @@
+ 
+ /* Backport note: HDMI state helper test conversion is not applicable to this tree layout. */
+ /* Backport note: max TMDS KUnit coverage is not applicable to this tree layout. */
++/* Backport note: source-side scrambling KUnit coverage is not applicable to this tree layout. */
+ /*
+  * Kunit test for drm_hdmi_state_helper functions
+  */
+
+-- 
+2.55.0
+
+
+_______________________________________________
+Linux-rockchip mailing list
+Linux-rockchip@lists.infradead.org
+http://lists.infradead.org/mailman/listinfo/linux-rockchip

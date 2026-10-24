@@ -1,0 +1,147 @@
+From mboxrd@z Thu Jan  1 00:00:00 1970
+Return-Path: <linux-rockchip-bounces+linux-rockchip=archiver.kernel.org@lists.infradead.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3FECDC54F54
+	for <linux-rockchip@archiver.kernel.org>; Fri, 31 Jul 2026 16:24:26 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=lists.infradead.org; s=bombadil.20210309; h=Sender:
+	Content-Transfer-Encoding:Content-Type:List-Subscribe:List-Help:List-Post:
+	List-Archive:List-Unsubscribe:List-Id:Cc:To:In-Reply-To:References:Message-Id
+	:MIME-Version:Subject:Date:From:Reply-To:Content-ID:Content-Description:
+	Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:
+	List-Owner; bh=SF7/LKYi4IhTasPPwW5szrEgOl8axwDhl93MCGfN0u8=; b=JWM48F2YWWgthR
+	KDh02rdWz9CRss1Omy9KfOwOpOc1fzWDAlVtfTrRfNvcsECEbsePYXajyRxmFwdgp0heWI5NNZY3h
+	RGOnKsAwPf3hO2lODCaXnJKvw88Xzw0VBmQJK7a1rv55yKc+soHbAr7Qar4zoHMdF0TG/jtzp1oPv
+	f4CgwvMV7e+HJc4/z02/Vn2uMXzl6uza4n+5y2txDXBGsp7yt/isRY9tPupRfMCQy0DiWqQ1dAtF+
+	g9GPTLUAfB6qKh09L6hk3WvBlcGNki3hVnMa9zkTEVrOw8QPUKtVzLKDrQEvjFmYa7FVnUN1Ql3Cm
+	l+GvGNEKqy6bxm62ZgXQ==;
+Received: from localhost ([::1] helo=bombadil.infradead.org)
+	by bombadil.infradead.org with esmtp (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wpq22-0000000D4Fy-3uWw;
+	Fri, 31 Jul 2026 16:24:23 +0000
+Received: from desiato.infradead.org ([2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+	by bombadil.infradead.org with esmtps (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wppxv-0000000D00l-1YhI;
+	Fri, 31 Jul 2026 16:20:07 +0000
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=desiato.20200630; h=Cc:To:In-Reply-To:References:
+	Message-Id:Content-Transfer-Encoding:Content-Type:MIME-Version:Subject:Date:
+	From:Sender:Reply-To:Content-ID:Content-Description;
+	bh=9qYVz7TYzyV5T6fM9+2kjM7XlXAq7Ptl4RX/GpJ9Zi4=; b=pL50KWxeLcbdUeV2oXS/6kwg/j
+	YR2ruVA6SZ1mi6kqqobhmmqTzQcYW8qH+M+D4oigyCdDvJjG1k21wAiDWTuWyJzerWzJ5DFrRzab+
+	+YJek5tQItyjx2vl5KEVsngm7UIJIyzf6edqjXJkcrfb+h+fW6y2OoaGiI37HHNS7IhIa9slJ0f00
+	YSni7Nqm9+tTiy01h87kLiqyi185IGLS156UYqW/oFgHXFYweIG6D47Lh02HARgNTkPYRblQZsNdE
+	xzNvtKUMmyTpE9Yj9OOdzk5N8dFiur9uebO1EDyi7u2ghUTGyD1QpoBVj+luPgyAM8HNXdNjF5nld
+	FOC+9vDQ==;
+Received: from bali.collaboradmins.com ([148.251.105.195])
+	by desiato.infradead.org with esmtps (Exim 4.99.2 #2 (Red Hat Linux))
+	id 1wppxs-00000007bCv-20E7;
+	Fri, 31 Jul 2026 16:20:06 +0000
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=collabora.com;
+	s=mail; t=1785514799;
+	bh=0kQcEb8Hkp5EMJTEHb1RclxeTrVhTTx4W2V5Vh+7vis=;
+	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
+	b=U7AxCbZCHAI1qvMa3sSa+wO+cmbu0LjmRtkiijgm8zvf3L4QzVdGfj3W0KuRRgTzQ
+	 Ddm4a9p+Il5DyzS9oSPL7LzoTspbXEvMCOSqxWF31VqWU18kV7YhBvV+di/FEiEFQv
+	 zUvqETU2cqVj/YWjLMbc9giCjDtCd/TsTDHyPYvHR/hITR09fej7Kid8b56XIvj1aQ
+	 oIZi6AbWSDGwSvneSM9rSH8cZbVa5q4KHCaYLH1KNC+JhTt0pJo/lb7kBysHEabi19
+	 f6bmCfPvu35UeQrm8eBo+jPCTRHrb2kJqfVejq3piSw7IAjL2L3vGixJHJqSPMHRaG
+	 wEzXQoUFe2shw==
+Received: from localhost (unknown [100.64.0.241])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange secp256r1 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	(Authenticated sender: cristicc)
+	by bali.collaboradmins.com (Postfix) with ESMTPSA id 8927D17E09F7;
+	Fri, 31 Jul 2026 18:19:59 +0200 (CEST)
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Fri, 31 Jul 2026 19:20:10 +0300
+Subject: [PATCH v10 63/69] drm/tests: hdmi_state_helper: Convert to
+ drmm_connector_hdmi_init()
+MIME-Version: 1.0
+Message-Id: <20260731-dw-hdmi-qp-scramb-v10-63-294364b2cf15@collabora.com>
+References: <20260731-dw-hdmi-qp-scramb-v10-0-294364b2cf15@collabora.com>
+In-Reply-To: <20260731-dw-hdmi-qp-scramb-v10-0-294364b2cf15@collabora.com>
+To: Andrzej Hajda <andrzej.hajda@intel.com>, 
+ Neil Armstrong <neil.armstrong@linaro.org>, Robert Foss <rfoss@kernel.org>, 
+ Laurent Pinchart <Laurent.pinchart@ideasonboard.com>, 
+ Jonas Karlman <jonas@kwiboo.se>, Jernej Skrabec <jernej.skrabec@gmail.com>, 
+ Luca Ceresoli <luca.ceresoli@bootlin.com>, 
+ Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+ Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+ David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
+ Chen-Yu Tsai <wens@kernel.org>, Samuel Holland <samuel@sholland.org>, 
+ Dave Stevenson <dave.stevenson@raspberrypi.com>, 
+ =?utf-8?q?Ma=C3=ADra_Canal?= <mcanal@igalia.com>, 
+ Raspberry Pi Kernel Maintenance <kernel-list@raspberrypi.com>, 
+ Sandy Huang <hjc@rock-chips.com>, 
+ =?utf-8?q?Heiko_St=C3=BCbner?= <heiko@sntech.de>, 
+ Andy Yan <andy.yan@rock-chips.com>, Algea Cao <algea.cao@rock-chips.com>, 
+ Daniel Stone <daniels@collabora.com>, Liu Ying <victor.liu@nxp.com>, 
+ Phong LE <ple@baylibre.com>
+Cc: kernel@collabora.com, linux-kernel@vger.kernel.org, 
+ dri-devel@lists.freedesktop.org, linux-arm-kernel@lists.infradead.org, 
+ linux-sunxi@lists.linux.dev, linux-rockchip@lists.infradead.org
+X-Mailer: b4 0.15.2
+X-CRM114-Version: 20100106-BlameMichelson ( TRE 0.9.0 (BSD) ) MR-646709E3 
+X-CRM114-CacheID: sfid-20260731_172004_833775_938D3550 
+X-CRM114-Status: GOOD (  15.14  )
+X-BeenThere: linux-rockchip@lists.infradead.org
+X-Mailman-Version: 2.1.34
+Precedence: list
+List-Id: Upstream kernel work for Rockchip platforms <linux-rockchip.lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-rockchip>,
+ <mailto:linux-rockchip-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-rockchip/>
+List-Post: <mailto:linux-rockchip@lists.infradead.org>
+List-Help: <mailto:linux-rockchip-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-rockchip>,
+ <mailto:linux-rockchip-request@lists.infradead.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: "Linux-rockchip" <linux-rockchip-bounces@lists.infradead.org>
+Errors-To: linux-rockchip-bounces+linux-rockchip=archiver.kernel.org@lists.infradead.org
+
+Switch tests over to the new drmm_connector_hdmi_init() signature, where
+the vendor, product, supported_formats and max_bpc values previously
+passed as arguments are now provided through struct
+drm_connector_hdmi_funcs.
+
+As a consequence, the tests exercising those values can no longer share
+the static hdmi_funcs and need a modified copy of their own.  Since the
+connector retains a pointer to it, such a copy must not live on the
+caller's stack, which is gone by the time the DRM-managed actions
+release the connector.
+
+Let __connector_hdmi_init() store it in struct
+drm_atomic_helper_connector_hdmi_priv instead.  This structure embeds
+the DRM device and is freed through managed.final_kfree only after
+drm_dev_release() has run all DRM-managed actions, so it strictly
+outlives the connector.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+diff --git a/drivers/gpu/drm/tests/drm_hdmi_state_helper_test.c b/drivers/gpu/drm/tests/drm_hdmi_state_helper_test.c
+index 907d9861c..6368b9ffa 100644
+--- a/drivers/gpu/drm/tests/drm_hdmi_state_helper_test.c
++++ b/drivers/gpu/drm/tests/drm_hdmi_state_helper_test.c
+@@ -1,5 +1,6 @@
+ // SPDX-License-Identifier: GPL-2.0
+ 
++/* Backport note: HDMI state helper test conversion is not applicable to this tree layout. */
+ /*
+  * Kunit test for drm_hdmi_state_helper functions
+  */
+
+-- 
+2.55.0
+
+
+_______________________________________________
+Linux-rockchip mailing list
+Linux-rockchip@lists.infradead.org
+http://lists.infradead.org/mailman/listinfo/linux-rockchip

@@ -1,0 +1,152 @@
+From mboxrd@z Thu Jan  1 00:00:00 1970
+Return-Path: <linux-rockchip-bounces+linux-rockchip=archiver.kernel.org@lists.infradead.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.lore.kernel.org (Postfix) with ESMTPS id 3CDACC55174
+	for <linux-rockchip@archiver.kernel.org>; Fri, 31 Jul 2026 16:24:04 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=lists.infradead.org; s=bombadil.20210309; h=Sender:
+	Content-Transfer-Encoding:Content-Type:List-Subscribe:List-Help:List-Post:
+	List-Archive:List-Unsubscribe:List-Id:Cc:To:In-Reply-To:References:Message-Id
+	:MIME-Version:Subject:Date:From:Reply-To:Content-ID:Content-Description:
+	Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:
+	List-Owner; bh=vXTNdWBrmtzsscWOLnMhxaEa7hw55RxGELzQck2rpbc=; b=gjOQZrI9MNz3ge
+	yhC9FF6cAmngFWC3mueVEThQ33vYqM1Z7c6SdzQhjs3LazLsq3G2qtADKOUktk/t+JAY7/h6BJ55d
+	iNVTfFFo2E3coKI2mamvLwCzqnBjbqJjjrflr6l+BbhXfXGBoUlfVrHnduqSTmtKHHjGpSI4BHYst
+	KG1nUaXKrsIaSzCsFu1+fIfFjeA8Ffsx33NAOHPMfjslEo337A1NOZDVuMdY1bwt6ha5VlRTppGXw
+	DyBOAzzjvFgPo7mIdB3qZBerg/7ZwPwYaRWuQiRg/2abbAa8kWBC1Vhr6aypzbA8L3iNp+Jn3VhfC
+	TgKryb486QWwJcfI9HMw==;
+Received: from localhost ([::1] helo=bombadil.infradead.org)
+	by bombadil.infradead.org with esmtp (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wpq1g-0000000D3K6-2zgx;
+	Fri, 31 Jul 2026 16:24:00 +0000
+Received: from bali.collaboradmins.com ([2a01:4f8:201:9162::2])
+	by bombadil.infradead.org with esmtps (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wppxf-0000000CzaO-1FC6;
+	Fri, 31 Jul 2026 16:20:02 +0000
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=collabora.com;
+	s=mail; t=1785514788;
+	bh=AJ/omjN/lK86toWZGrUtZiZmvSWbYljt1UsCr8wPgmY=;
+	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
+	b=dVnch+0kNLmLhfj41SPiKFwqYpfM0HL/9gmQ8VhVgah7IsW8juZUXcdYRLva1LXuF
+	 rGeizyZs4dqtJyweYyYRLtpyAZEF5hII0tfaDn+l6wvaqZMkW6RPfCk1rsXrwXg5z9
+	 BHI0BE6+KUZIIUICEFa6q7UjezPL4PE7qBfkInxKWDOIFRANBX4z/852NSMgasMcDB
+	 Bt0Ibsa7ESFWkDrDrSSHxRxT4qdlte9swm7kdVDrpk/lTa50ASYk0jmAOkIXxlDl0w
+	 jQOYXzoBj6mssyyNQRpSMFjx01iE8ljm1YOc9jUivTkJ3C3IjqddFhw2jopUD1nqcG
+	 KWtmIBJ3EIzQg==
+Received: from localhost (unknown [100.64.0.241])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange secp256r1 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	(Authenticated sender: cristicc)
+	by bali.collaboradmins.com (Postfix) with ESMTPSA id 444E017E091F;
+	Fri, 31 Jul 2026 18:19:48 +0200 (CEST)
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Fri, 31 Jul 2026 19:19:54 +0300
+Subject: [PATCH v10 47/69] drm/display: hdmi-state-helper: Drop
+ drm_atomic_helper_connector_hdmi_force()
+MIME-Version: 1.0
+Message-Id: <20260731-dw-hdmi-qp-scramb-v10-47-294364b2cf15@collabora.com>
+References: <20260731-dw-hdmi-qp-scramb-v10-0-294364b2cf15@collabora.com>
+In-Reply-To: <20260731-dw-hdmi-qp-scramb-v10-0-294364b2cf15@collabora.com>
+To: Andrzej Hajda <andrzej.hajda@intel.com>, 
+ Neil Armstrong <neil.armstrong@linaro.org>, Robert Foss <rfoss@kernel.org>, 
+ Laurent Pinchart <Laurent.pinchart@ideasonboard.com>, 
+ Jonas Karlman <jonas@kwiboo.se>, Jernej Skrabec <jernej.skrabec@gmail.com>, 
+ Luca Ceresoli <luca.ceresoli@bootlin.com>, 
+ Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+ Maxime Ripard <mripard@kernel.org>, Thomas Zimmermann <tzimmermann@suse.de>, 
+ David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>, 
+ Chen-Yu Tsai <wens@kernel.org>, Samuel Holland <samuel@sholland.org>, 
+ Dave Stevenson <dave.stevenson@raspberrypi.com>, 
+ =?utf-8?q?Ma=C3=ADra_Canal?= <mcanal@igalia.com>, 
+ Raspberry Pi Kernel Maintenance <kernel-list@raspberrypi.com>, 
+ Sandy Huang <hjc@rock-chips.com>, 
+ =?utf-8?q?Heiko_St=C3=BCbner?= <heiko@sntech.de>, 
+ Andy Yan <andy.yan@rock-chips.com>, Algea Cao <algea.cao@rock-chips.com>, 
+ Daniel Stone <daniels@collabora.com>, Liu Ying <victor.liu@nxp.com>, 
+ Phong LE <ple@baylibre.com>
+Cc: kernel@collabora.com, linux-kernel@vger.kernel.org, 
+ dri-devel@lists.freedesktop.org, linux-arm-kernel@lists.infradead.org, 
+ linux-sunxi@lists.linux.dev, linux-rockchip@lists.infradead.org
+X-Mailer: b4 0.15.2
+X-CRM114-Version: 20100106-BlameMichelson ( TRE 0.9.0 (BSD) ) MR-646709E3 
+X-CRM114-CacheID: sfid-20260731_091953_918946_4D2A1CCE 
+X-CRM114-Status: UNSURE (   9.33  )
+X-CRM114-Notice: Please train this message.
+X-BeenThere: linux-rockchip@lists.infradead.org
+X-Mailman-Version: 2.1.34
+Precedence: list
+List-Id: Upstream kernel work for Rockchip platforms <linux-rockchip.lists.infradead.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-rockchip>,
+ <mailto:linux-rockchip-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-rockchip/>
+List-Post: <mailto:linux-rockchip@lists.infradead.org>
+List-Help: <mailto:linux-rockchip-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-rockchip>,
+ <mailto:linux-rockchip-request@lists.infradead.org?subject=subscribe>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Sender: "Linux-rockchip" <linux-rockchip-bounces@lists.infradead.org>
+Errors-To: linux-rockchip-bounces+linux-rockchip=archiver.kernel.org@lists.infradead.org
+
+With all callers converted to the .force_ctx() connector helper, this
+function has no users left.  Remove it.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/display/drm_hdmi_state_helper.c | 15 ---------------
+ include/drm/display/drm_hdmi_state_helper.h     |  1 -
+ 2 files changed, 16 deletions(-)
+
+diff --git a/drivers/gpu/drm/display/drm_hdmi_state_helper.c b/drivers/gpu/drm/display/drm_hdmi_state_helper.c
+index 9544eb8659aa..04c9e06b9dc1 100644
+--- a/drivers/gpu/drm/display/drm_hdmi_state_helper.c
++++ b/drivers/gpu/drm/display/drm_hdmi_state_helper.c
+@@ -1261,21 +1261,6 @@ int drm_atomic_helper_connector_hdmi_hotplug(struct drm_connector *connector,
+ }
+ EXPORT_SYMBOL(drm_atomic_helper_connector_hdmi_hotplug);
+ 
+-/**
+- * drm_atomic_helper_connector_hdmi_force - HDMI Connector implementation of the force callback
+- * @connector: A pointer to the HDMI connector
+- *
+- * This function implements the .force() callback for the HDMI connectors. It
+- * can either be used directly as the callback or should be called from within
+- * the .force() callback implementation to maintain the HDMI-specific
+- * connector's data.
+- */
+-void drm_atomic_helper_connector_hdmi_force(struct drm_connector *connector)
+-{
+-	drm_atomic_helper_connector_hdmi_update(connector, NULL, connector->status);
+-}
+-EXPORT_SYMBOL(drm_atomic_helper_connector_hdmi_force);
+-
+ /**
+  * drm_atomic_helper_connector_hdmi_force_ctx - HDMI Connector implementation
+  * of the force_ctx callback
+diff --git a/include/drm/display/drm_hdmi_state_helper.h b/include/drm/display/drm_hdmi_state_helper.h
+index ae4fff82c3fb..81c85b4dce56 100644
+--- a/include/drm/display/drm_hdmi_state_helper.h
++++ b/include/drm/display/drm_hdmi_state_helper.h
+@@ -26,7 +26,6 @@ int drm_atomic_helper_connector_hdmi_update_infoframes(struct drm_connector *con
+ int drm_atomic_helper_connector_hdmi_hotplug(struct drm_connector *connector,
+ 					     struct drm_modeset_acquire_ctx *ctx,
+ 					     enum drm_connector_status status);
+-void drm_atomic_helper_connector_hdmi_force(struct drm_connector *connector);
+ int drm_atomic_helper_connector_hdmi_force_ctx(struct drm_connector *connector,
+ 					       struct drm_modeset_acquire_ctx *ctx);
+ 
+
+-- 
+2.55.0
+
+
+_______________________________________________
+Linux-rockchip mailing list
+Linux-rockchip@lists.infradead.org
+http://lists.infradead.org/mailman/listinfo/linux-rockchip
+
